@@ -29,7 +29,7 @@ contract Strategy is BaseStrategy {
     address[2] public path;
     bool private claimed = false;
 
-    // unsigned. Indicates the losses incurred from the protocol's deposit fees
+    // unsigned. Indicates the losses incurred from the protocol's deposit fee)s
     uint256 private incurredLosses = 0;
 
     constructor(address _vault) public BaseStrategy(_vault) {
@@ -127,7 +127,7 @@ contract Strategy is BaseStrategy {
 
         uint256 depositFee = _amount.sub(balanceOfStaked());
         uint256 oneAsBips = 10000;
-        uint256 need = depositFee.div(oneAsBips - pool.depositFeeInBips());
+        uint256 need = depositFee.mul(oneAsBips).div(oneAsBips - pool.depositFeeInBips()).div(oneAsBips);
         incurredLosses.add(need);
     }
 
