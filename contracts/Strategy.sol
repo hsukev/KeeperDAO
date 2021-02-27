@@ -6,8 +6,10 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 // These are the core Yearn libraries
-import {BaseStrategy, StrategyParams} from "@yearnvaults/contracts/BaseStrategy.sol";
+import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/math/Math.sol";
+
 import "../interfaces/keeperDao.sol";
 import "../interfaces/uniswap.sol";
 
@@ -26,7 +28,7 @@ contract Strategy is BaseStrategy {
 
     IKToken public kToken;
 
-    address[2] public path;
+    address[] public path;
     bool private claimed = false;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fee)s
@@ -39,8 +41,8 @@ contract Strategy is BaseStrategy {
         // debtThreshold = 0;
 
         // check to see if KeeperDao can actually accept want (BTC, DAI, USDC, ETH, WETH)
-        kToken = pool.kToken(want);
-        require(address(_kToken) != address(0x0), "Protocol doesn't support this token!");
+        kToken = pool.kToken(address(want));
+        require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
 
         want.safeApprove(address(pool), uint256(- 1));
         rook.safeApprove(address(this), uint256(- 1));
@@ -85,8 +87,8 @@ contract Strategy is BaseStrategy {
             _sell(rewards);
         }
 
-        uint256 profit = balanceOfUnstaked();
         // from selling rewards
+        uint256 profit = balanceOfUnstaked();
         uint256 usableProfit = 0;
         // this should be guaranteed if called by keeper. See {harvestTrigger()}
         if (profit > incurredLosses) {
@@ -98,7 +100,7 @@ contract Strategy is BaseStrategy {
         if (_debtOutstanding > usableProfit) {
             // withdraw just enough to pay off debt
             uint256 _toWithdraw = Math.min(_debtOutstanding.sub(usableProfit), balanceOfStaked());
-            pool.withdraw(address(this), address(kToken), _toWithdraw);
+            pool.withdraw(address(this), kToken, _toWithdraw);
             _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked());
 
         } else {
@@ -106,7 +108,8 @@ contract Strategy is BaseStrategy {
             _profit = usableProfit.sub(_debtOutstanding);
         }
 
-        // reinvest everything
+        // Reinvest everything.
+        // Don't need to account for incurredLoss here as it's not deducting from user deposit but rather profit
         pool.deposit(address(kToken), balanceOfUnstaked());
 
         return (_profit, _loss, _debtPayment);
@@ -146,7 +149,7 @@ contract Strategy is BaseStrategy {
 
             // can't withdraw more than staked
             uint256 actualWithdrawAmount = Math.min(desiredWithdrawAmount, balanceOfStaked());
-            pool.withdraw(address(this), address(kToken), actualWithdrawAmount);
+            pool.withdraw(address(this), kToken, actualWithdrawAmount);
 
             _liquidatedAmount = balanceOfUnstaked();
             // already withdrew all that it could, any difference left is considered _loss,
@@ -179,7 +182,7 @@ contract Strategy is BaseStrategy {
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
     // Adding this to harvestTrigger() will ensure that strategy will never have to report a positive _loss to the vault and lower its trust
-    function netPositive() public onlyKeepers returns (bool){
+    function netPositive() public view onlyKeepers returns (bool){
         return _estimateReward(balanceOfReward()) > incurredLosses;
     }
 
@@ -202,19 +205,16 @@ contract Strategy is BaseStrategy {
         claimed = false;
     }
 
-    function _estimateReward(uint256 _amount) internal returns (uint256){
-        return uniswapRouter.getAmountsOut(_amount, path);
+    function _estimateReward(uint256 _amount) internal view returns (uint256){
+        return uniswapRouter.getAmountsOut(_amount, path)[1];
     }
 
-    function protectedTokens()
-    internal
-    view
-    override
-    returns (address[] memory)
-    {
+    function protectedTokens() internal view override returns (address[] memory){
         address[] memory protected = new address[](1);
-        protected[0] = kToken;
-        protected[1] = rook;
+        protected[0] = address(kToken);
+        protected[1] = address(rook);
         return protected;
     }
+
+    receive() external payable {}
 }
