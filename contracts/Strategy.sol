@@ -110,7 +110,7 @@ contract Strategy is BaseStrategy {
 
         // Reinvest everything.
         // Don't need to account for incurredLoss here as it's not deducting from user deposit but rather profit
-        pool.deposit(address(kToken), balanceOfUnstaked());
+        pool.deposit(address(want), balanceOfUnstaked());
 
         return (_profit, _loss, _debtPayment);
     }
@@ -126,7 +126,7 @@ contract Strategy is BaseStrategy {
 
     // NAV premium of 0.64% when depositing everytime. Need to keep track of this for _loss calculation.
     function _provideLiquidity(uint256 _amount) private {
-        pool.deposit(address(kToken), _amount);
+        pool.deposit(address(want), _amount);
 
         uint256 depositFee = _amount.sub(balanceOfStaked());
         uint256 oneAsBips = 10000;
