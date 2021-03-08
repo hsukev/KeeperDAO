@@ -85,6 +85,9 @@ contract Strategy is BaseStrategy {
         uint256 rewards = balanceOfReward();
         if (rewards > 0) {
             _sell(rewards);
+        } else if (balanceOfUnstaked() <= 0) {
+            // no rewards, no unstaked, do nothing
+            return (_profit, _loss, _debtPayment);
         }
 
         // from selling rewards
@@ -206,7 +209,11 @@ contract Strategy is BaseStrategy {
     }
 
     function _estimateReward(uint256 _amount) internal view returns (uint256){
-        return uniswapRouter.getAmountsOut(_amount, path)[1];
+        if (_amount > 0) {
+            return uniswapRouter.getAmountsOut(_amount, path)[1];
+        } else {
+            return 0;
+        }
     }
 
     function protectedTokens() internal view override returns (address[] memory){
