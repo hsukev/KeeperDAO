@@ -46,6 +46,7 @@ contract Strategy is BaseStrategy {
 
         want.safeApprove(address(pool), uint256(- 1));
         rook.safeApprove(address(this), uint256(- 1));
+        kToken.approve(address(pool), uint256(- 1));
 
         path = [address(rook), address(want)];
 
@@ -64,12 +65,22 @@ contract Strategy is BaseStrategy {
         return want.balanceOf(address(this));
     }
 
+    function valueOfStaked() public view returns (uint256){
+        return pool.underlyingBalance(address(want), address(this));
+    }
+
+    // kTokens have different virtual prices. Balance != want
     function balanceOfStaked() public view returns (uint256){
         return kToken.balanceOf(address(this));
     }
 
     function balanceOfReward() public view returns (uint256){
         return rook.balanceOf(address(this));
+    }
+
+    // only way to find out is thru calculating a virtual price this way
+    function inKTokens(uint256 wantAmount) public view returns (uint256){
+        return wantAmount.mul(balanceOfStaked()).div(valueOfStaked());
     }
 
     function prepareReturn(uint256 _debtOutstanding) internal override returns (
@@ -102,7 +113,7 @@ contract Strategy is BaseStrategy {
 
         if (_debtOutstanding > usableProfit) {
             // withdraw just enough to pay off debt
-            uint256 _toWithdraw = Math.min(_debtOutstanding.sub(usableProfit), balanceOfStaked());
+            uint256 _toWithdraw = Math.min(_debtOutstanding.sub(usableProfit), valueOfStaked());
             pool.withdraw(address(this), kToken, _toWithdraw);
             _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked());
 
@@ -131,7 +142,7 @@ contract Strategy is BaseStrategy {
     function _provideLiquidity(uint256 _amount) private {
         pool.deposit(address(want), _amount);
 
-        uint256 depositFee = _amount.sub(balanceOfStaked());
+        uint256 depositFee = _amount.sub(valueOfStaked());
         uint256 oneAsBips = 10000;
         uint256 need = depositFee.mul(oneAsBips).div(oneAsBips - pool.depositFeeInBips()).div(oneAsBips);
         incurredLosses.add(need);
@@ -151,8 +162,9 @@ contract Strategy is BaseStrategy {
             uint256 desiredWithdrawAmount = _amountNeeded.sub(balanceOfUnstaked());
 
             // can't withdraw more than staked
-            uint256 actualWithdrawAmount = Math.min(desiredWithdrawAmount, balanceOfStaked());
-            pool.withdraw(address(this), kToken, actualWithdrawAmount);
+            uint256 actualWithdrawAmount = Math.min(desiredWithdrawAmount, valueOfStaked());
+
+            pool.withdraw(address(this), kToken, inKTokens(actualWithdrawAmount));
 
             _liquidatedAmount = balanceOfUnstaked();
             // already withdrew all that it could, any difference left is considered _loss,
