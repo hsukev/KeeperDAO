@@ -54,7 +54,7 @@ contract Strategy is BaseStrategy {
 
     function name() external view override returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return 'StrategyKeeperDAOGenericSingle';
+        return 'StrategyRookGenericSingle';
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
@@ -204,15 +204,15 @@ contract Strategy is BaseStrategy {
 
     // Has to be called manually since this requires off-chain data.
     // Needs to be called before harvesting otherwise there's nothing to harvest.
-    // Claim = true indicates that strategy is currently holding reward tokens that haven't been sold.
-    // Claim = true enables harvest(). See {strategy.harvestTrigger()}
+    // Claimed = true, indicates that strategy is currently holding reward tokens that haven't been sold.
+    // Claimed = true, enables harvest(). See {strategy.harvestTrigger()}
     function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
         claimed = balanceOfReward() > 0;
     }
 
-    // Claim = false indicates that there is no more reward to sell.
-    // Claim = false disables harvest(). See {strategy.harvestTrigger()}.
+    // Claimed = false, indicates that there is no more reward to sell.
+    // Claimed = false, disables harvest(). See {strategy.harvestTrigger()}.
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if haven't claimed
         if (claimed) {
