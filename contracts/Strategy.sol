@@ -58,7 +58,7 @@ contract Strategy is BaseStrategy {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return balanceOfStaked().add(balanceOfUnstaked()).add(_estimateReward(balanceOfReward()));
+        return valueOfStaked().add(balanceOfUnstaked()).add(_estimateReward(balanceOfReward()));
     }
 
     function balanceOfUnstaked() public view returns (uint256){
@@ -79,6 +79,7 @@ contract Strategy is BaseStrategy {
     }
 
     // only way to find out is thru calculating a virtual price this way
+    // TODO: return a reasonable value when div(0)
     function inKTokens(uint256 wantAmount) public view returns (uint256){
         return wantAmount.mul(balanceOfStaked()).div(valueOfStaked());
     }
