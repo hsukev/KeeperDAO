@@ -141,3 +141,9 @@ def withdraw(share,whale, dai, vault):
     balanceAfter = dai.balanceOf(whale)
     moneyOut = balanceAfter-balanceBefore
     print('Money Out:', Wei(moneyOut).to('ether'))
+
+def strategyBreakdown(strategy):
+    print(f'balanceOfStaked = ', strategy.balanceOfStaked())
+    print(f'valueOfStaked = ', strategy.valueOfStaked())
+    print(f'balanceOfUnstaked = ', strategy.balanceOfUnstaked())
+    print(f'balanceOfReward = ', strategy.balanceOfReward())
