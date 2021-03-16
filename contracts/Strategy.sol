@@ -29,7 +29,6 @@ contract Strategy is BaseStrategy {
     IKToken public kToken;
 
     address[] public path;
-    bool private claimed = false;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fee)s
     uint256 private incurredLosses = 0;
@@ -191,10 +190,10 @@ contract Strategy is BaseStrategy {
         rook.transfer(_newStrategy, balanceOfReward());
     }
 
-    // Trigger harvest only if strategy has claimed, otherwise, there's nothing to harvest.
+    // Trigger harvest only if strategy has rewards, otherwise, there's nothing to harvest.
     // This logic is added on top of existing gas efficient harvestTrigger() in the parent class
     function harvestTrigger(uint256 callCost) public override view returns (bool) {
-        return super.harvestTrigger(callCost) && claimed && netPositive();
+        return super.harvestTrigger(callCost) && balanceOfReward() > 0 && netPositive();
     }
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
@@ -205,21 +204,15 @@ contract Strategy is BaseStrategy {
 
     // Has to be called manually since this requires off-chain data.
     // Needs to be called before harvesting otherwise there's nothing to harvest.
-    // Claimed = true, indicates that strategy is currently holding reward tokens that haven't been sold.
-    // Claimed = true, enables harvest(). See {strategy.harvestTrigger()}
     function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
-        claimed = balanceOfReward() > 0;
     }
 
-    // Claimed = false, indicates that there is no more reward to sell.
-    // Claimed = false, disables harvest(). See {strategy.harvestTrigger()}.
     function _sell(uint256 _amount) internal {
-        // since claiming is async, no point in selling if strategy hasn't claimed
-        if (claimed || balanceOfReward() > 0) {
+        // since claiming is async, no point in selling if strategy hasn't claimed rewards
+        if (balanceOfReward() > 0) {
             uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
         }
-        claimed = false;
     }
 
     function _estimateReward(uint256 _amount) internal view returns (uint256){
