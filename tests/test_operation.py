@@ -5,25 +5,26 @@ import requests
 from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
 
 
-def test_operation(accounts, token, vault, strategy, strategist, amount):
-    # Deposit to the vault
-    token.approve(vault.address, amount, {"from": accounts[0]})
-    vault.deposit(amount, {"from": accounts[0]})
-    assert token.balanceOf(vault.address) == amount
+# def test_operation(accounts, token, vault, strategy, strategist, amount):
+#     # Deposit to the vault
+#     token.approve(vault.address, amount, {"from": accounts[0]})
+#     vault.deposit(amount, {"from": accounts[0]})
+#     assert token.balanceOf(vault.address) == amount
+#
+#     # harvest
+#     strategy.harvest()
+#     genericStateOfStrat(strategy, token, vault)
+#
+#     # tend()
+#     strategy.tend()
+#
+#     # withdrawal
+#
+#     strategyBreakdown(strategy)
+#     vault.withdraw(2 ** 256 - 1, accounts[0], 70, {"from": accounts[0]})
+#
+#     assert token.balanceOf(accounts[0]) != 0
 
-    # harvest
-    strategy.harvest()
-    genericStateOfStrat(strategy, token, vault)
-
-    # tend()
-    strategy.tend()
-
-    # withdrawal
-
-    strategyBreakdown(strategy)
-    vault.withdraw(2 ** 256 - 1, accounts[0], 70, {"from": accounts[0]})
-
-    assert token.balanceOf(accounts[0]) != 0
 
 # def test_emergency_exit(accounts, token, vault, strategy, strategist, amount):
 #     # Deposit to the vault
@@ -39,24 +40,24 @@ def test_operation(accounts, token, vault, strategy, strategist, amount):
 #
 #
 
-# def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, chain):
-#     # Deposit to the vault
-#     token.approve(vault.address, amount, {"from": accounts[0]})
-#     vault.deposit(amount, {"from": accounts[0]})
-#     assert token.balanceOf(vault.address) == amount
-#     #
-#     # harvest
-#     strategy.harvest()
-#     # assert token.balanceOf(strategy.address) == amount
-#
-#     # You should test that the harvest method is capable of making a profit.
-#     chain.sleep(3600 * 24)
-#     chain.mine(1)
-#
-#     receive = requests.get(f'https://indibo-lpq2.herokuapp.com/reward_of_liquidity_provider/{strategy.address}')
-#     print(f'responses = {receive.json()}')
-#     strategy.harvest()
-#     assert token.balanceOf(strategy.address) > amount
+def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook):
+    # Deposit to the vault
+    token.approve(vault.address, amount, {"from": accounts[0]})
+    vault.deposit(amount, {"from": accounts[0]})
+    assert token.balanceOf(vault.address) == amount
+    #
+    # harvest
+    strategy.harvest()
+    assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
+
+    # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
+    # The heroku app is updated from mainnet data and is not open sourced
+
+    # arbitrary reward amount from a whale
+    rook.transfer(strategy.address, 10000 * 10 ** 18, {"from": rook_whale})
+    strategyBreakdown(strategy)
+    strategy.harvest()
+    assert strategy.estimatedTotalAssets() > amount
 
 #
 # def test_change_debt(gov, token, vault, strategy, strategist, amount):

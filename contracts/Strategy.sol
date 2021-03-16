@@ -46,6 +46,7 @@ contract Strategy is BaseStrategy {
 
         want.safeApprove(address(pool), uint256(- 1));
         rook.safeApprove(address(this), uint256(- 1));
+        rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
 
         path = [address(rook), address(want)];
@@ -124,7 +125,7 @@ contract Strategy is BaseStrategy {
         }
 
         // Reinvest everything.
-        // Don't need to account for incurredLoss here as it's not deducting from user deposit but rather profit
+        // Don't need to account for incurredLoss here as it's not deducting from user deposit, just profits
         pool.deposit(address(want), balanceOfUnstaked());
 
         return (_profit, _loss, _debtPayment);
@@ -214,8 +215,8 @@ contract Strategy is BaseStrategy {
     // Claimed = false, indicates that there is no more reward to sell.
     // Claimed = false, disables harvest(). See {strategy.harvestTrigger()}.
     function _sell(uint256 _amount) internal {
-        // since claiming is async, no point in selling if haven't claimed
-        if (claimed) {
+        // since claiming is async, no point in selling if strategy hasn't claimed
+        if (claimed || balanceOfReward() > 0) {
             uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
         }
         claimed = false;

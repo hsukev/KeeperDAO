@@ -54,9 +54,13 @@ def weth():
     token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     yield Contract(token_address)
 
+@pytest.fixture
+def rook():
+    token_address = "0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a"
+    yield Contract(token_address)
 
 @pytest.fixture
-def weth_amout(gov, weth):
+def weth_amount(gov, weth):
     weth_amout = 10 ** weth.decimals()
     gov.transfer(weth, weth_amout)
     yield weth_amout
@@ -79,4 +83,7 @@ def strategy(strategist, keeper, vault, Strategy, gov):
     vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
     yield strategy
 
+@pytest.fixture
+def rook_whale(accounts):
+    yield accounts.at("0xb81f5b9bd373b9d0df2e3191a01b8fa9b4d2832a", force=True)
 
