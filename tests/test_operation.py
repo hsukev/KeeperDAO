@@ -57,7 +57,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
     print(f'---- before harvest')
     strategyBreakdown(strategy)
-    strategy.harvest()
+    strategy.testPrepareReturn(0)
 
     print(f'---- after harvest')
     strategyBreakdown(strategy)

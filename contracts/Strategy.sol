@@ -210,6 +210,10 @@ contract Strategy is BaseStrategy {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
     }
 
+    function testPrepareReturn(uint256 _amount) public {
+        prepareReturn(uint256(0));
+    }
+
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
         if (balanceOfReward() > 0) {
