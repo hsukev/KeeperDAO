@@ -147,3 +147,7 @@ def strategyBreakdown(strategy):
     print(f'valueOfStaked = ', strategy.valueOfStaked())
     print(f'balanceOfUnstaked = ', strategy.balanceOfUnstaked())
     print(f'balanceOfReward = ', strategy.balanceOfReward())
+    print(f'valueOfReward = ', strategy.valueOfReward())
+    print(f'estimatedTotalAsset = ', strategy.estimatedTotalAssets())
+
+

@@ -54,9 +54,13 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     # The heroku app is updated from mainnet data and is not open sourced
 
     # arbitrary reward amount from a whale
-    rook.transfer(strategy.address, 10000 * 10 ** 18, {"from": rook_whale})
+    rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
+    print(f'---- before harvest')
     strategyBreakdown(strategy)
     strategy.harvest()
+
+    print(f'---- after harvest')
+    strategyBreakdown(strategy)
     assert strategy.estimatedTotalAssets() > amount
 
 #
