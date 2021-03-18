@@ -40,33 +40,33 @@ from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
 #
 #
 
-def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook):
-    # Deposit to the vault
-    token.approve(vault.address, amount, {"from": accounts[0]})
-    vault.deposit(amount, {"from": accounts[0]})
-    assert token.balanceOf(vault.address) == amount
-    #
-    # harvest
-    strategy.harvest()
-    assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
-
-    assets_before = vault.totalAssets()
-
-    # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
-    # The heroku app is updated from mainnet data and is not open sourced
-
-    # arbitrary reward amount from a whale
-    rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
-    print(f'\n---- before harvest')
-    strategyBreakdown(strategy)
-    genericStateOfVault(vault, token)
-    strategy.harvest()
-
-    print(f'\n---- after harvest')
-    strategyBreakdown(strategy)
-    genericStateOfVault(vault, token)
-
-    assert vault.totalAssets() > assets_before
+# def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook):
+#     # Deposit to the vault
+#     token.approve(vault.address, amount, {"from": accounts[0]})
+#     vault.deposit(amount, {"from": accounts[0]})
+#     assert token.balanceOf(vault.address) == amount
+#     #
+#     # harvest
+#     strategy.harvest()
+#     assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
+#
+#     assets_before = vault.totalAssets()
+#
+#     # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
+#     # The heroku app is updated from mainnet data and is not open sourced
+#
+#     # arbitrary reward amount from a whale
+#     rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
+#     print(f'\n---- before harvest')
+#     strategyBreakdown(strategy)
+#     genericStateOfVault(vault, token)
+#     strategy.harvest()
+#
+#     print(f'\n---- after harvest')
+#     strategyBreakdown(strategy)
+#     genericStateOfVault(vault, token)
+#
+#     assert vault.totalAssets() > assets_before
 #
 # def test_change_debt(gov, token, vault, strategy, strategist, amount):
 #     # Deposit to the vault and harvest
@@ -87,7 +87,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
 #     # assert token.balanceOf(strategy.address) == amount / 2
 #
 #
-# def test_sweep(gov, vault, strategy, token, amount, weth, weth_amout):
+# def test_sweep(gov, vault, strategy, token, amount, weth, weth_amout, rook):
 #     # Strategy want token doesn't work
 #     token.transfer(strategy, amount, {"from": gov})
 #     assert token.address == strategy.want()
@@ -99,10 +99,10 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
 #     with brownie.reverts("!shares"):
 #         strategy.sweep(vault.address, {"from": gov})
 #
-#     # TODO: If you add protected tokens to the strategy.
 #     # Protected token doesn't work
-#     # with brownie.reverts("!protected"):
-#     #     strategy.sweep(strategy.protectedToken(), {"from": gov})
+#     with brownie.reverts("!protected"):
+#         strategy.sweep(rook, {"from": gov})
+#         strategy.sweep(strategy.kToken, {"from": gov})
 #
 #     weth.transfer(strategy, weth_amout, {"from": gov})
 #     assert weth.address != strategy.want()

@@ -233,7 +233,7 @@ contract Strategy is BaseStrategy {
     }
 
     function protectedTokens() internal view override returns (address[] memory){
-        address[] memory protected = new address[](1);
+        address[] memory protected = new address[](2);
         protected[0] = address(kToken);
         protected[1] = address(rook);
         return protected;
