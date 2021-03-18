@@ -50,19 +50,23 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     strategy.harvest()
     assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
 
+    assets_before = vault.totalAssets()
+
     # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
     # The heroku app is updated from mainnet data and is not open sourced
 
     # arbitrary reward amount from a whale
     rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
-    print(f'---- before harvest')
+    print(f'\n---- before harvest')
     strategyBreakdown(strategy)
-    strategy.testPrepareReturn(0)
+    genericStateOfVault(vault, token)
+    strategy.harvest()
 
-    print(f'---- after harvest')
+    print(f'\n---- after harvest')
     strategyBreakdown(strategy)
-    assert strategy.estimatedTotalAssets() > amount
+    genericStateOfVault(vault, token)
 
+    assert vault.totalAssets() > assets_before
 #
 # def test_change_debt(gov, token, vault, strategy, strategist, amount):
 #     # Deposit to the vault and harvest

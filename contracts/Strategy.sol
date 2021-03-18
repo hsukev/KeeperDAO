@@ -33,7 +33,7 @@ contract Strategy is BaseStrategy {
 
     address[] public path;
 
-    // unsigned. Indicates the losses incurred from the protocol's deposit fee)s
+    // unsigned. Indicates the losses incurred from the protocol's deposit fees
     uint256 private incurredLosses = 0;
 
     constructor(address _vault) public BaseStrategy(_vault) {
@@ -111,7 +111,10 @@ contract Strategy is BaseStrategy {
         if (profit > incurredLosses) {
             // we want strategy to pay off its own incurredLosses from deposit fees first so it doesn't have to report _loss to the vault
             usableProfit = profit.sub(incurredLosses);
-            incurredLosses = 0;
+            if (incurredLosses > 0) {
+                pool.deposit(address(want), incurredLosses);
+                incurredLosses = 0;
+            }
         }
 
         if (_debtOutstanding > usableProfit) {
@@ -124,10 +127,6 @@ contract Strategy is BaseStrategy {
             _debtPayment = _debtOutstanding;
             _profit = usableProfit.sub(_debtOutstanding);
         }
-
-        // Reinvest everything.
-        // Don't need to account for incurredLoss here as it's not deducting from user deposit, just profits
-//        pool.deposit(address(want), balanceOfUnstaked());
 
         return (_profit, _loss, _debtPayment);
     }
@@ -143,12 +142,14 @@ contract Strategy is BaseStrategy {
 
     // NAV premium of 0.64% when depositing everytime. Need to keep track of this for _loss calculation.
     function _provideLiquidity(uint256 _amount) private {
+        uint256 stakedBefore = valueOfStaked();
         pool.deposit(address(want), _amount);
-
-        uint256 depositFee = _amount.sub(valueOfStaked());
+        uint256 stakedAfter = valueOfStaked();
+        uint256 stakedDelta = stakedAfter.sub(stakedBefore);
+        uint256 depositFee = _amount.sub(stakedDelta);
         uint256 oneAsBips = 10000;
-        uint256 need = depositFee.mul(oneAsBips).div(oneAsBips - pool.depositFeeInBips()).div(oneAsBips);
-        incurredLosses.add(need);
+        uint256 need = depositFee.mul(oneAsBips).div(oneAsBips - pool.depositFeeInBips());
+        incurredLosses = incurredLosses.add(need);
     }
 
     function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss) {
