@@ -1,32 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0
-// Feel free to change the license, but this is what we use
 
-// Feel free to change this version of Solidity. We support >=0.6.0 <0.7.0;
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-// These are the core Yearn libraries
 import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/keeperDao.sol";
 import "../interfaces/uniswap.sol";
-import "../interfaces/oneInch.sol";
-
-
-// Import interfaces for many popular DeFi projects, or add your own!
-//import "../interfaces/<protocol>/<Interface>.sol";
 
 contract Strategy is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
 
-    IOneSplit public oneInchRouter = IOneSplit(address(0xC586BeF4a0992C495Cf22e1aeEE4E446CECDee0E));
+    IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
     IDistributeV1 private distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
     ILiquidityPoolV2 public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
     IERC20 public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
+    IERC20 public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
 
     IKToken public kToken;
 
@@ -47,11 +40,14 @@ contract Strategy is BaseStrategy {
         want.safeApprove(address(this), uint256(- 1));
         want.safeApprove(address(pool), uint256(- 1));
         rook.safeApprove(address(this), uint256(- 1));
-        rook.safeApprove(address(oneInchRouter), uint256(- 1));
+        rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
 
-        path = [address(rook), address(want)];
-
+        if (address(want) == address(weth)) {
+            path = [address(rook), address(weth)];
+        } else {
+            path = [address(rook), address(weth), address(want)];
+        }
     }
 
     function name() external view override returns (string memory) {
@@ -216,25 +212,17 @@ contract Strategy is BaseStrategy {
         _sell(_amount);
     }
 
-    function testSwap(uint256 _amount) public {
-        uint256[] memory distribution;
-        (, distribution) = oneInchRouter.getExpectedReturn(rook, want, _amount, 1, 0);
-        oneInchRouter.swap(rook, want, _amount, uint256(0), distribution, 0);
-    }
-
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
         if (balanceOfReward() > 0) {
-            uint256[] memory distribution;
-            (, distribution) = oneInchRouter.getExpectedReturn(rook, want, _amount, 1, 0);
-            oneInchRouter.swap(rook, want, _amount, uint256(0), distribution, 0);
+            uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
         }
     }
 
     function _estimateReward(uint256 _amount) public view returns (uint256){
         uint256 amountOut = 0;
         if (_amount > 0) {
-            (amountOut,) = oneInchRouter.getExpectedReturn(rook, want, _amount, 1, 0);
+            amountOut = uniswapRouter.getAmountsOut(_amount, path)[1];
         }
         return amountOut;
     }

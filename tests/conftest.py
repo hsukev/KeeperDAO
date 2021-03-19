@@ -37,7 +37,10 @@ def keeper(accounts):
 def token():
     # 0x6b175474e89094c44da98b954eedeac495271d0f dai
     # 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D renBTC
-    token_address = "0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D"
+    # 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 usdc
+    # 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 weth
+
+    token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     yield Contract(token_address)
 
 
@@ -49,7 +52,10 @@ def amount(accounts, token):
 
     # 0xd551234ae421e3bcba99a0da6d736074f22192ff dai whale
     # 0x93054188d876f558f4a66b2ef1d97d16edf0895b renBTC whale
-    reserve = accounts.at("0x93054188d876f558f4a66b2ef1d97d16edf0895b", force=True)
+    # 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8 usdc whale
+    # 0x2f0b23f53734252bda2277357e97e1517d6b042a weth whale
+
+    reserve = accounts.at("0x2f0b23f53734252bda2277357e97e1517d6b042a", force=True)
     token.transfer(accounts[0], amount, {"from": reserve})
     yield amount
 
@@ -67,10 +73,19 @@ def rook():
 
 
 @pytest.fixture
-def weth_amount(gov, weth):
-    weth_amout = 10 ** weth.decimals()
-    gov.transfer(weth, weth_amout)
-    yield weth_amout
+def crv_amount(crv, crv_whale):
+    yield 100 * 10 ** crv.decimals()
+
+
+@pytest.fixture
+def crv():
+    token_address = "0xD533a949740bb3306d119CC777fa900bA034cd52"
+    yield Contract(token_address)
+
+
+@pytest.fixture
+def crv_whale(accounts):
+    yield accounts.at("0xd2d43555134dc575bf7279f4ba18809645db0f1d", force=True)
 
 
 @pytest.fixture
@@ -94,16 +109,3 @@ def strategy(strategist, keeper, vault, Strategy, gov):
 @pytest.fixture
 def rook_whale(accounts):
     yield accounts.at("0xb81f5b9bd373b9d0df2e3191a01b8fa9b4d2832a", force=True)
-
-
-@pytest.fixture
-def weth():
-    token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    yield Contract(token_address)
-
-
-@pytest.fixture
-def weth_amout(gov, weth):
-    weth_amout = 10 ** weth.decimals()
-    gov.transfer(weth, weth_amout)
-    yield weth_amout
