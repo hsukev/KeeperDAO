@@ -25,7 +25,6 @@ contract Strategy is BaseStrategy {
 
     IOneSplit public oneInchRouter = IOneSplit(address(0xC586BeF4a0992C495Cf22e1aeEE4E446CECDee0E));
     IDistributeV1 private distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
-    IUniswapV2Router02 private uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
     ILiquidityPoolV2 public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
     IERC20 public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
 
@@ -42,10 +41,10 @@ contract Strategy is BaseStrategy {
         // profitFactor = 100;
         // debtThreshold = 0;
 
-        // check to see if KeeperDao can actually accept want (BTC, DAI, USDC, ETH, WETH)
+        // check to see if KeeperDao can actually accept want (renBTC, DAI, USDC, ETH, WETH)
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
-
+        want.safeApprove(address(this), uint256(- 1));
         want.safeApprove(address(pool), uint256(- 1));
         rook.safeApprove(address(this), uint256(- 1));
         rook.safeApprove(address(oneInchRouter), uint256(- 1));
@@ -68,6 +67,7 @@ contract Strategy is BaseStrategy {
         return want.balanceOf(address(this));
     }
 
+    // valued in wants
     function valueOfStaked() public view returns (uint256){
         return pool.underlyingBalance(address(want), address(this));
     }
@@ -212,8 +212,14 @@ contract Strategy is BaseStrategy {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
     }
 
-    function testPrepareReturn(uint256 _amount) public {
-        prepareReturn(uint256(0));
+    function testSell(uint256 _amount) public {
+        _sell(_amount);
+    }
+
+    function testSwap(uint256 _amount) public {
+        uint256[] memory distribution;
+        (, distribution) = oneInchRouter.getExpectedReturn(rook, want, _amount, 1, 0);
+        oneInchRouter.swap(rook, want, _amount, uint256(0), distribution, 0);
     }
 
     function _sell(uint256 _amount) internal {
@@ -225,7 +231,7 @@ contract Strategy is BaseStrategy {
         }
     }
 
-    function _estimateReward(uint256 _amount) internal view returns (uint256){
+    function _estimateReward(uint256 _amount) public view returns (uint256){
         uint256 amountOut = 0;
         if (_amount > 0) {
             (amountOut,) = oneInchRouter.getExpectedReturn(rook, want, _amount, 1, 0);
