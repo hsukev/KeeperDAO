@@ -60,36 +60,17 @@ def test_change_debt(gov, token, vault, strategy, strategist, amount):
     token.approve(vault.address, amount, {"from": gov})
     vault.deposit(amount, {"from": gov})
 
-    genericStateOfStrat(strategy, token, vault)
-    genericStateOfVault(vault, token)
     vault.updateStrategyDebtRatio(strategy.address, 5_000, {"from": gov})
-    genericStateOfStrat(strategy, token, vault)
-
-    genericStateOfVault(vault, token)
-
     strategy.harvest()
     # since there's a deposit fee, we just want to check within a reasonable margin like 1%
     assert (amount / 2) * 1.01 > strategy.estimatedTotalAssets() > (amount / 2) * .99
-    genericStateOfStrat(strategy, token, vault)
-
-    genericStateOfVault(vault, token)
 
     vault.updateStrategyDebtRatio(strategy.address, 10_000, {"from": gov})
-    genericStateOfStrat(strategy, token, vault)
-
-    genericStateOfVault(vault, token)
-
     strategy.harvest()
     # since there's a deposit fee, we just want to check within a reasonable margin like 1%
     assert (amount) * 1.01 > strategy.estimatedTotalAssets() > (amount) * .99
-    genericStateOfStrat(strategy, token, vault)
-
-    genericStateOfVault(vault, token)
-
+    
     vault.updateStrategyDebtRatio(strategy.address, 5_000, {"from": gov})
-    genericStateOfStrat(strategy, token, vault)
-    genericStateOfVault(vault, token)
-
     strategy.harvest()
     # Larger margin bc deposit was never recovered before debtRatio was lowered
     assert amount / 2 * 1.02 > strategy.estimatedTotalAssets() > amount / 2 * .98
