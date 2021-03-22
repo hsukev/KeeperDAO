@@ -83,12 +83,8 @@ contract Strategy is BaseStrategy {
 
     // only way to find out is thru calculating a virtual price this way
     // TODO: return a reasonable value when div(0)
-    function inKTokens(uint256 wantAmount) public view returns (uint256){
+    function inKTokens(uint256 wantAmount) internal view returns (uint256){
         return wantAmount.mul(balanceOfStaked()).div(valueOfStaked());
-    }
-
-    function testReturn(uint256 _debtOutstanding) public returns (uint256 _profit, uint256 _loss, uint256 _debtPayment){
-        return prepareReturn(_debtOutstanding);
     }
 
     function prepareReturn(uint256 _debtOutstanding) internal override returns (uint256 _profit, uint256 _loss, uint256 _debtPayment){
@@ -198,7 +194,7 @@ contract Strategy is BaseStrategy {
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
     // Adding this to harvestTrigger() will ensure that strategy will never have to report a positive _loss to the vault and lower its trust
-    function netPositive() public view onlyKeepers returns (bool){
+    function netPositive() internal view onlyKeepers returns (bool){
         return _estimateReward(balanceOfReward()) > incurredLosses;
     }
 
@@ -206,10 +202,6 @@ contract Strategy is BaseStrategy {
     // Needs to be called before harvesting otherwise there's nothing to harvest.
     function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
-    }
-
-    function testSell(uint256 _amount) public {
-        _sell(_amount);
     }
 
     function _sell(uint256 _amount) internal {
