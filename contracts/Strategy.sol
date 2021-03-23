@@ -200,8 +200,43 @@ contract Strategy is BaseStrategy {
 
     // Has to be called manually since this requires off-chain data.
     // Needs to be called before harvesting otherwise there's nothing to harvest.
-    function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
+    function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
+    }
+
+    function harvest(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature, bool claimFirst) external onlyKeepers {
+        if (claimFirst) {
+            claimRewards(_to, _earningsToDate, _nonce, _signature);
+        }
+
+        uint256 profit = 0;
+        uint256 loss = 0;
+        uint256 debtOutstanding = vault.debtOutstanding();
+        uint256 debtPayment = 0;
+        if (emergencyExit) {
+            // Free up as much capital as possible
+            uint256 totalAssets = estimatedTotalAssets();
+            // NOTE: use the larger of total assets or debt outstanding to book losses properly
+            (debtPayment, loss) = liquidatePosition(totalAssets > debtOutstanding ? totalAssets : debtOutstanding);
+            // NOTE: take up any remainder here as profit
+            if (debtPayment > debtOutstanding) {
+                profit = debtPayment.sub(debtOutstanding);
+                debtPayment = debtOutstanding;
+            }
+        } else {
+            // Free up returns for Vault to pull
+            (profit, loss, debtPayment) = prepareReturn(debtOutstanding);
+        }
+
+        // Allow Vault to take up to the "harvested" balance of this contract,
+        // which is the amount it has earned since the last time it reported to
+        // the Vault.
+        debtOutstanding = vault.report(profit, loss, debtPayment);
+
+        // Check if free returns are left, and re-invest them
+        adjustPosition(debtOutstanding);
+
+        emit Harvested(profit, loss, debtPayment, debtOutstanding);
     }
 
     function _sell(uint256 _amount) internal {
