@@ -24,6 +24,7 @@ contract Strategy is BaseStrategy {
     IKToken public kToken;
 
     address[] public path;
+    address[] public wethWantPath;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fees
     uint256 private incurredLosses = 0;
@@ -45,6 +46,7 @@ contract Strategy is BaseStrategy {
             path = [address(rook), address(weth)];
         } else {
             path = [address(rook), address(weth), address(want)];
+            wethWantPath = [address(weth), address(want)];
         }
     }
 
@@ -54,7 +56,7 @@ contract Strategy is BaseStrategy {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return valueOfStaked().add(balanceOfUnstaked()).add(_estimateReward(balanceOfReward()));
+        return valueOfStaked().add(balanceOfUnstaked()).add(_estimateAmountsOut(balanceOfReward(), path));
     }
 
     function balanceOfUnstaked() public view returns (uint256){
@@ -76,7 +78,7 @@ contract Strategy is BaseStrategy {
     }
 
     function valueOfReward() public view returns (uint256){
-        return _estimateReward(rook.balanceOf(address(this)));
+        return _estimateAmountsOut(rook.balanceOf(address(this)), path);
     }
 
     // only way to find out is thru calculating a virtual price this way
@@ -185,54 +187,20 @@ contract Strategy is BaseStrategy {
     // Trigger harvest only if strategy has rewards, otherwise, there's nothing to harvest.
     // This logic is added on top of existing gas efficient harvestTrigger() in the parent class
     function harvestTrigger(uint256 callCost) public override view returns (bool) {
-        return super.harvestTrigger(callCost) && balanceOfReward() > 0 && netPositive();
+        return super.harvestTrigger(_estimateAmountsOut(callCost, wethWantPath)) && balanceOfReward() > 0 && netPositive();
     }
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
     // Adding this to harvestTrigger() will ensure that strategy will never have to report a positive _loss to the vault and lower its trust
     function netPositive() internal view onlyKeepers returns (bool){
-        return _estimateReward(balanceOfReward()) > incurredLosses;
+        return _estimateAmountsOut(balanceOfReward(), path) > incurredLosses;
     }
 
     // Has to be called manually since this requires off-chain data.
     // Needs to be called before harvesting otherwise there's nothing to harvest.
-    function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
-        distributor.claim(_to, _earningsToDate, _nonce, _signature);
-    }
-
-    function harvest(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature, bool claimFirst) external onlyKeepers {
-        if (claimFirst) {
-            claimRewards(_to, _earningsToDate, _nonce, _signature);
-        }
-
-        uint256 profit = 0;
-        uint256 loss = 0;
-        uint256 debtOutstanding = vault.debtOutstanding();
-        uint256 debtPayment = 0;
-        if (emergencyExit) {
-            // Free up as much capital as possible
-            uint256 totalAssets = estimatedTotalAssets();
-            // NOTE: use the larger of total assets or debt outstanding to book losses properly
-            (debtPayment, loss) = liquidatePosition(totalAssets > debtOutstanding ? totalAssets : debtOutstanding);
-            // NOTE: take up any remainder here as profit
-            if (debtPayment > debtOutstanding) {
-                profit = debtPayment.sub(debtOutstanding);
-                debtPayment = debtOutstanding;
-            }
-        } else {
-            // Free up returns for Vault to pull
-            (profit, loss, debtPayment) = prepareReturn(debtOutstanding);
-        }
-
-        // Allow Vault to take up to the "harvested" balance of this contract,
-        // which is the amount it has earned since the last time it reported to
-        // the Vault.
-        debtOutstanding = vault.report(profit, loss, debtPayment);
-
-        // Check if free returns are left, and re-invest them
-        adjustPosition(debtOutstanding);
-
-        emit Harvested(profit, loss, debtPayment, debtOutstanding);
+    function claimRewards(uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
+        require(_earningsToDate > 0, "You are trying to claim 0 rewards");
+        distributor.claim(address(this), _earningsToDate, _nonce, _signature);
     }
 
     function _sell(uint256 _amount) internal {
@@ -242,10 +210,14 @@ contract Strategy is BaseStrategy {
         }
     }
 
-    function _estimateReward(uint256 _amount) public view returns (uint256){
+    function _estimateAmountsOut(uint256 _amount, address[] memory sellPath) public view returns (uint256){
         uint256 amountOut = 0;
+        if (sellPath.length <= 0) {
+            return _amount;
+        }
+
         if (_amount > 0) {
-            amountOut = uniswapRouter.getAmountsOut(_amount, path)[1];
+            amountOut = uniswapRouter.getAmountsOut(_amount, sellPath)[sellPath.length - 1];
         }
         return amountOut;
     }
