@@ -12,8 +12,8 @@ def test_revoke_strategy_from_vault(token, vault, strategy, amount, gov):
     vault.revokeStrategy(strategy.address, {"from": gov})
     strategy.harvest()
     genericStateOfVault(vault, token)
-    strategyBreakdown(strategy)
-    assert strategy.estimatedTotalAssets() == 0
+    strategyBreakdown(strategy, token, vault)
+    assert token.balanceOf(vault.address) > amount * .99
 
 
 def test_emergency_exit(accounts, token, vault, strategy, strategist, amount):

@@ -20,7 +20,7 @@ def test_operation(accounts, token, vault, strategy, strategist, amount):
 
     # withdrawal
 
-    strategyBreakdown(strategy)
+    strategyBreakdown(strategy, token, vault)
     vault.withdraw(2 ** 256 - 1, accounts[0], 70, {"from": accounts[0]})
 
     assert token.balanceOf(accounts[0]) != 0
@@ -44,12 +44,12 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     # arbitrary reward amount from a whale
     rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
     print(f'\n---- before harvest')
-    strategyBreakdown(strategy)
+    strategyBreakdown(strategy, token, vault)
     genericStateOfVault(vault, token)
     strategy.harvest()
 
     print(f'\n---- after harvest')
-    strategyBreakdown(strategy)
+    strategyBreakdown(strategy, token, vault)
     genericStateOfVault(vault, token)
 
     assert vault.totalAssets() > assets_before
