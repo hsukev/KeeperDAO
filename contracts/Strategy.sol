@@ -195,7 +195,6 @@ contract Strategy is BaseStrategy {
     // Needs to be called before harvesting otherwise there's nothing to harvest.
     function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
-        super.harvest();
     }
 
     function harvest(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature, bool claimFirst) external onlyKeepers {
