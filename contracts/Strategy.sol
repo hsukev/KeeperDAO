@@ -110,6 +110,9 @@ contract Strategy is BaseStrategy {
             _loss = incurredLosses.sub(profit);
         }
 
+        // loss has been recorded. 
+        incurredLosses = 0;
+
         if (_debtOutstanding > usableProfit) {
             // withdraw just enough to pay off debt
             uint256 _toWithdraw = Math.min(_debtOutstanding.sub(usableProfit), valueOfStaked());
