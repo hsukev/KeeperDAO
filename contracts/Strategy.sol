@@ -37,9 +37,7 @@ contract Strategy is BaseStrategy {
         // check to see if KeeperDao can actually accept want (renBTC, DAI, USDC, ETH, WETH)
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
-        want.safeApprove(address(this), uint256(- 1));
         want.safeApprove(address(pool), uint256(- 1));
-        rook.safeApprove(address(this), uint256(- 1));
         rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
 
@@ -108,6 +106,8 @@ contract Strategy is BaseStrategy {
                 pool.deposit(address(want), incurredLosses);
                 incurredLosses = 0;
             }
+        } else {
+            _loss = incurredLosses.sub(profit);
         }
 
         if (_debtOutstanding > usableProfit) {
@@ -146,17 +146,10 @@ contract Strategy is BaseStrategy {
     }
 
     function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss) {
-        // NOTE: Maintain invariant `want.balanceOf(this) >= _liquidatedAmount`
-        // NOTE: Maintain invariant `_liquidatedAmount + _loss <= _amountNeeded`
-
-        uint256 rewards = balanceOfReward();
-        if (rewards > 0) {
-            _sell(rewards);
-        }
-
         // if _amountNeeded is more than currently available, need to unstake some and/or sell rewards to free up assets
-        if (_amountNeeded > balanceOfUnstaked()) {
-            uint256 desiredWithdrawAmount = _amountNeeded.sub(balanceOfUnstaked());
+        uint256 unstaked = balanceOfUnstaked();
+        if (_amountNeeded > unstaked) {
+            uint256 desiredWithdrawAmount = _amountNeeded.sub(unstaked);
 
             // can't withdraw more than staked
             uint256 actualWithdrawAmount = Math.min(desiredWithdrawAmount, valueOfStaked());
@@ -202,6 +195,7 @@ contract Strategy is BaseStrategy {
     // Needs to be called before harvesting otherwise there's nothing to harvest.
     function claimRewards(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
         distributor.claim(_to, _earningsToDate, _nonce, _signature);
+        super.harvest();
     }
 
     function harvest(address _to, uint256 _earningsToDate, uint256 _nonce, bytes memory _signature, bool claimFirst) external onlyKeepers {
