@@ -99,11 +99,10 @@ contract Strategy is BaseStrategy {
 
         // from selling rewards
         uint256 profit = balanceOfUnstaked();
-        uint256 usableProfit = 0;
         // this should be guaranteed if called by keeper. See {harvestTrigger()}
         if (profit > incurredLosses) {
             // we want strategy to pay off its own incurredLosses from deposit fees first so it doesn't have to report _loss to the vault
-            usableProfit = profit.sub(incurredLosses);
+            _profit = profit.sub(incurredLosses);
             if (incurredLosses > 0) {
                 pool.deposit(address(want), incurredLosses);
                 incurredLosses = 0;
@@ -115,15 +114,15 @@ contract Strategy is BaseStrategy {
         // loss has been recorded.
         incurredLosses = 0;
 
-        if (_debtOutstanding > usableProfit) {
+        if (_debtOutstanding > _profit) {
             // withdraw just enough to pay off debt
-            uint256 _toWithdraw = Math.min(_debtOutstanding.sub(usableProfit), valueOfStaked());
+            uint256 _toWithdraw = Math.min(_debtOutstanding.sub(_profit), valueOfStaked());
             pool.withdraw(address(this), kToken, inKTokens(_toWithdraw));
             _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked());
 
         } else {
             _debtPayment = _debtOutstanding;
-            _profit = usableProfit.sub(_debtOutstanding);
+            _profit = _profit.sub(_debtOutstanding);
         }
 
         return (_profit, _loss, _debtPayment);
