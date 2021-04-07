@@ -3,6 +3,11 @@ from brownie import config
 from brownie import Contract
 
 
+# Snapshots the chain before each test and reverts after test completion.
+@pytest.fixture(scope="function", autouse=True)
+def shared_setup(fn_isolation):
+    pass
+
 @pytest.fixture
 def gov(accounts):
     yield accounts[0]
@@ -31,7 +36,6 @@ def strategist(accounts):
 @pytest.fixture
 def keeper(accounts):
     yield accounts[5]
-
 
 @pytest.fixture
 def token():

@@ -3,14 +3,14 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
+import {BaseStrategyInitializable} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/keeperDao.sol";
 import "../interfaces/uniswap.sol";
 
-contract Strategy is BaseStrategy {
+contract Strategy is BaseStrategyInitializable {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -29,7 +29,37 @@ contract Strategy is BaseStrategy {
     // unsigned. Indicates the losses incurred from the protocol's deposit fees
     uint256 private incurredLosses = 0;
 
-    constructor(address _vault) public BaseStrategy(_vault) {
+    constructor(address _vault) public BaseStrategyInitializable(_vault) {
+        init(_vault, msg.sender, msg.sender, msg.sender);
+    }
+
+    function initialize1(
+        address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper
+    ) external {
+        _init(_vault, msg.sender, msg.sender, msg.sender);
+    }
+
+    function _init(
+        address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper
+    ) internal {
+        super._initialize(_vault, _strategist, _rewards, _keeper);
+        init(_vault, msg.sender, msg.sender, msg.sender);
+    }
+
+
+    function init(
+        address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper
+    ) internal {
+
         // You can set these parameters on deployment to whatever you want
         // maxReportDelay = 6300;
         // profitFactor = 100;
@@ -39,6 +69,7 @@ contract Strategy is BaseStrategy {
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
         want.safeApprove(address(pool), uint256(- 1));
+        require(0 == 0, "Break");
         rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
 
@@ -48,6 +79,30 @@ contract Strategy is BaseStrategy {
             path = [address(rook), address(weth), address(want)];
             wethWantPath = [address(weth), address(want)];
         }
+    }
+
+    function cloneStrategy(
+        address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper
+    ) external returns (address newStrategy) {
+        // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
+        bytes20 addressBytes = bytes20(address(this));
+
+        assembly {
+        // EIP-1167 bytecode
+            let clone_code := mload(0x40)
+            mstore(clone_code, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+            mstore(add(clone_code, 0x14), addressBytes)
+            mstore(add(clone_code, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+            newStrategy := create(0, clone_code, 0x37)
+        }
+
+        Strategy cloned = Strategy(payable(newStrategy));
+        cloned.initialize1(_vault, _strategist, _rewards, _keeper);
+
+        emit Cloned(newStrategy);
     }
 
     function name() external view override returns (string memory) {
