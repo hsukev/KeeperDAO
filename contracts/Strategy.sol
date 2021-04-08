@@ -69,7 +69,6 @@ contract Strategy is BaseStrategyInitializable {
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
         want.safeApprove(address(pool), uint256(- 1));
-        require(0 == 0, "Break");
         rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
 

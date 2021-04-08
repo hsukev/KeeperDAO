@@ -8,6 +8,7 @@ from brownie import Contract
 def shared_setup(fn_isolation):
     pass
 
+
 @pytest.fixture
 def gov(accounts):
     yield accounts[0]
@@ -37,6 +38,7 @@ def strategist(accounts):
 def keeper(accounts):
     yield accounts[5]
 
+
 @pytest.fixture
 def token():
     # 0x6b175474e89094c44da98b954eedeac495271d0f dai
@@ -47,6 +49,15 @@ def token():
     token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     yield Contract(token_address)
 
+@pytest.fixture
+def dai():
+    # 0x6b175474e89094c44da98b954eedeac495271d0f dai
+    # 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D renBTC
+    # 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 usdc
+    # 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 weth
+
+    token_address = "0x6b175474e89094c44da98b954eedeac495271d0f"
+    yield Contract(token_address)
 
 @pytest.fixture
 def amount(accounts, token):
@@ -97,6 +108,15 @@ def vault(pm, gov, rewards, guardian, management, token):
     Vault = pm(config["dependencies"][0]).Vault
     vault = guardian.deploy(Vault)
     vault.initialize(token, gov, rewards, "", "", guardian)
+    vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
+    vault.setManagement(management, {"from": gov})
+    yield vault
+
+@pytest.fixture
+def dai_vault(pm, gov, rewards, guardian, management, dai):
+    Vault = pm(config["dependencies"][0]).Vault
+    vault = guardian.deploy(Vault)
+    vault.initialize(dai, gov, rewards, "", "", guardian)
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
     yield vault
