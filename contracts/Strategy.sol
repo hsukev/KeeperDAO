@@ -10,16 +10,20 @@ import {Math} from "@openzeppelin/contracts/math/Math.sol";
 import "../interfaces/keeperDao.sol";
 import "../interfaces/uniswap.sol";
 
+interface IName {
+    function name() external view returns (string memory);
+}
+
 contract Strategy is BaseStrategyInitializable {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
 
-    IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
-    IDistributeV1 private distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
-    ILiquidityPoolV2 public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
-    IERC20 public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
-    IERC20 public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
+    IUniswapV2Router02 constant public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
+    IDistributeV1 constant private distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
+    ILiquidityPoolV2 constant public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
+    IERC20 constant public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
+    IERC20 constant public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
 
     IKToken public kToken;
 
@@ -106,7 +110,9 @@ contract Strategy is BaseStrategyInitializable {
 
     function name() external view override returns (string memory) {
         // Add your own name here, suggestion e.g. "StrategyCreamYFI"
-        return 'StrategyKeeperDAOGeneric';
+        return string(
+            abi.encodePacked("StrategyRook ", IName(address(want)).name())
+        );
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {

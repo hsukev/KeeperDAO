@@ -46,7 +46,7 @@ def token():
     # 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 usdc
     # 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 weth
 
-    token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    token_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
     yield Contract(token_address)
 
 @pytest.fixture
@@ -70,7 +70,8 @@ def amount(accounts, token):
     # 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8 usdc whale
     # 0x2f0b23f53734252bda2277357e97e1517d6b042a weth whale
 
-    reserve = accounts.at("0x2f0b23f53734252bda2277357e97e1517d6b042a", force=True)
+    reserve = accounts.at("0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", force=True)
+
     token.transfer(accounts[0], amount, {"from": reserve})
     yield amount
 

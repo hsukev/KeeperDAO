@@ -1,12 +1,56 @@
 import pytest
 import brownie
+import test_operation
 from brownie import Wei, accounts, Contract, config
+from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
 
 
 @pytest.mark.require_network("mainnet-fork")
-def test_clone(strategy, strategist, rewards, keeper, vault, Strategy, gov, dai_vault):
+def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale):
     with brownie.reverts():
-        strategy.initialize(vault, strategist, rewards, keeper, {"from": gov})
+        strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
 
-    tx = strategy.cloneStrategy(dai_vault, strategist, rewards, keeper, {"from": gov})
-    assert Strategy.at(tx.return_value).name == "sdf"
+    transaction = strategy.cloneStrategy(dai_vault, strategist, rewards, keeper, {"from": gov})
+    cloned_strategy = Strategy.at(transaction.return_value)
+    assert cloned_strategy.name() == "StrategyRook Dai Stablecoin"
+
+    with brownie.reverts():
+        cloned_strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
+
+    # test harvest for cloned strategy
+    # dai whale
+    amount = 1 * 10 ** dai.decimals()
+    reserve = accounts.at("0xd551234ae421e3bcba99a0da6d736074f22192ff", force=True)
+    dai.transfer(accounts[0], amount, {"from": reserve})
+
+    token = dai
+    vault = dai_vault
+    strategy = cloned_strategy
+
+    # Deposit to the vault
+    token.approve(vault.address, amount, {"from": accounts[0]})
+    vault.deposit(amount, {"from": accounts[0]})
+    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
+    assert token.balanceOf(vault.address) == amount
+    #
+    # harvest
+    strategy.harvest({"from": gov})
+    assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
+
+    assets_before = vault.totalAssets()
+
+    # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
+    # The heroku app is updated from mainnet data and is not open sourced
+
+    # arbitrary reward amount from a whale
+    rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
+    print(f'\n---- before harvest')
+    strategyBreakdown(strategy, token, vault)
+    genericStateOfVault(vault, token)
+    strategy.harvest({"from": gov})
+
+    print(f'\n---- after harvest')
+    strategyBreakdown(strategy, token, vault)
+    genericStateOfVault(vault, token)
+
+    assert vault.totalAssets() > assets_before
