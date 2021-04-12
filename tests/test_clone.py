@@ -10,7 +10,7 @@ def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy,
     with brownie.reverts():
         strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
 
-    transaction = strategy.cloneStrategy(dai_vault, strategist, rewards, keeper, {"from": gov})
+    transaction = strategy.clone(dai_vault, strategist, rewards, keeper, {"from": gov})
     cloned_strategy = Strategy.at(transaction.return_value)
     assert cloned_strategy.name() == "StrategyRook Dai Stablecoin"
 
