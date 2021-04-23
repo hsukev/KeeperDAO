@@ -1,10 +1,13 @@
 import brownie
 from brownie import Contract
 import requests
+import pytest
+import conftest as config
 
 from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_operation(accounts, token, vault, strategy, strategist, amount):
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})
@@ -26,6 +29,7 @@ def test_operation(accounts, token, vault, strategy, strategist, amount):
     assert token.balanceOf(accounts[0]) != 0
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook):
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})
@@ -55,6 +59,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     assert vault.totalAssets() > assets_before
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_change_debt(gov, token, vault, strategy, strategist, amount):
     # Deposit to the vault and harvest
     token.approve(vault.address, amount, {"from": gov})
@@ -76,6 +81,7 @@ def test_change_debt(gov, token, vault, strategy, strategist, amount):
     assert amount / 2 * 1.02 > strategy.estimatedTotalAssets() > amount / 2 * .98
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_sweep(gov, vault, strategy, token, amount, crv, crv_amount, crv_whale, rook):
     # Strategy want token doesn't work
     token.transfer(strategy, amount, {"from": gov})
@@ -100,6 +106,7 @@ def test_sweep(gov, vault, strategy, token, amount, crv, crv_amount, crv_whale, 
     assert crv.balanceOf(strategy) == 0
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_triggers(gov, vault, strategy, token, amount, rook, rook_whale):
     # Deposit to the vault and harvest
     token.approve(vault.address, amount, {"from": gov})

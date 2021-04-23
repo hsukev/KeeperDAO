@@ -1,6 +1,9 @@
 from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
+import pytest
+import conftest as config
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_revoke_strategy_from_vault(token, vault, strategy, amount, gov):
     # Deposit to the vault and harvest
     token.approve(vault.address, amount, {"from": gov})
@@ -16,6 +19,7 @@ def test_revoke_strategy_from_vault(token, vault, strategy, amount, gov):
     assert token.balanceOf(vault.address) > amount * .99
 
 
+@pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
 def test_emergency_exit(accounts, token, vault, strategy, strategist, amount):
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})

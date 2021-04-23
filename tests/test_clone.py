@@ -3,10 +3,15 @@ import brownie
 import test_operation
 from brownie import Wei, accounts, Contract, config
 from util import genericStateOfStrat, genericStateOfVault, strategyBreakdown
+import pytest
+import conftest as config
 
 
-@pytest.mark.require_network("mainnet-fork")
-def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale):
+@pytest.mark.parametrize("token, amount", [
+    pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8",
+                 id="usdc")], indirect=True)
+def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale,
+               amount):
     with brownie.reverts():
         strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
 

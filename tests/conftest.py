@@ -38,40 +38,32 @@ def strategist(accounts):
 def keeper(accounts):
     yield accounts[5]
 
+fixtures = "token, amount"
+params = [
+    pytest.param("0x6b175474e89094c44da98b954eedeac495271d0f", "0xd551234ae421e3bcba99a0da6d736074f22192ff", id="dai"),
+    pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", id="usdc"),
+    pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x2f0b23f53734252bda2277357e97e1517d6b042a", id="weth"),
+    pytest.param("0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D", "0x93054188d876f558f4a66b2ef1d97d16edf0895b", id="renBTC")
+]
 
 @pytest.fixture
-def token():
-    # 0x6b175474e89094c44da98b954eedeac495271d0f dai
-    # 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D renBTC
-    # 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 usdc
-    # 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 weth
+def token(request):
+    yield Contract(request.param)
 
-    token_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-    yield Contract(token_address)
 
 @pytest.fixture
 def dai():
-    # 0x6b175474e89094c44da98b954eedeac495271d0f dai
-    # 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D renBTC
-    # 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 usdc
-    # 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 weth
-
     token_address = "0x6b175474e89094c44da98b954eedeac495271d0f"
     yield Contract(token_address)
 
+
 @pytest.fixture
-def amount(accounts, token):
+def amount(accounts, token, request):
     amount = 1 * 10 ** token.decimals()
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 
-    # 0xd551234ae421e3bcba99a0da6d736074f22192ff dai whale
-    # 0x93054188d876f558f4a66b2ef1d97d16edf0895b renBTC whale
-    # 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8 usdc whale
-    # 0x2f0b23f53734252bda2277357e97e1517d6b042a weth whale
-
-    reserve = accounts.at("0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", force=True)
-
+    reserve = accounts.at(request.param, force=True)
     token.transfer(accounts[0], amount, {"from": reserve})
     yield amount
 
@@ -112,6 +104,7 @@ def vault(pm, gov, rewards, guardian, management, token):
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
     yield vault
+
 
 @pytest.fixture
 def dai_vault(pm, gov, rewards, guardian, management, dai):
