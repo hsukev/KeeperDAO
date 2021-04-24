@@ -120,7 +120,7 @@ def dai_vault(pm, gov, rewards, guardian, management, dai):
 def strategy(strategist, keeper, vault, Strategy, gov):
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
     yield strategy
 
 
