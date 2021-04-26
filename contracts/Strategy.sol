@@ -20,11 +20,11 @@ contract Strategy is BaseStrategyInitializable {
     using SafeMath for uint256;
 
     IUniswapV2Router02 constant public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
-    IDistributeV1 constant private distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
     ILiquidityPoolV2 constant public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
     IERC20 constant public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
     IERC20 constant public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
 
+    IDistributeV1 public distributor;
     IKToken public kToken;
 
     address[] public path;
@@ -70,6 +70,7 @@ contract Strategy is BaseStrategyInitializable {
         rook.safeApprove(address(uniswapRouter), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
         treasury = address(0x93A62dA5a14C80f265DAbC077fCEE437B1a0Efde);
+        distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
 
         if (address(want) == address(weth)) {
             path = [address(rook), address(weth)];
@@ -227,8 +228,12 @@ contract Strategy is BaseStrategyInitializable {
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
     // Adding this to harvestTrigger() will ensure that strategy will never have to report a positive _loss to the vault and lower its trust
-    function netPositive() internal view onlyKeepers returns (bool){
+    function netPositive() public view onlyKeepers returns (bool){
         return _estimateAmountsOut(balanceOfReward(), path) > incurredLosses;
+    }
+
+    function getIncurredLosses() public view onlyKeepers returns (uint256){
+        return incurredLosses;
     }
 
     // Has to be called manually since this requires off-chain data.
@@ -236,6 +241,11 @@ contract Strategy is BaseStrategyInitializable {
     function claimRewards(uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
         require(_earningsToDate > 0, "You are trying to claim 0 rewards");
         distributor.claim(address(this), _earningsToDate, _nonce, _signature);
+    }
+
+    function claimRewards(uint256 _earningsToDate, uint256 _nonce, bytes memory _signature, address _distributor) external onlyKeepers {
+        require(_earningsToDate > 0, "You are trying to claim 0 rewards");
+        IDistributeV1(address(_distributor)).claim(address(this), _earningsToDate, _nonce, _signature);
     }
 
     function _sell(uint256 _amount) internal {
@@ -266,6 +276,10 @@ contract Strategy is BaseStrategyInitializable {
 
     function setKeep(uint256 _percentKeep) external onlyGovernance {
         percentKeep = _percentKeep;
+    }
+
+    function setDistributor(address _distributor) external onlyKeepers {
+        distributor = IDistributeV1(address(_distributor));
     }
 
     function setTreasury(address _treasury) external onlyGovernance {
