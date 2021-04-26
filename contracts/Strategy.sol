@@ -233,7 +233,7 @@ contract Strategy is BaseStrategyInitializable {
 
     // Has to be called manually since this requires off-chain data.
     // Needs to be called before harvesting otherwise there's nothing to harvest.
-    function claimRewards(uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) internal onlyKeepers {
+    function claimRewards(uint256 _earningsToDate, uint256 _nonce, bytes memory _signature) external onlyKeepers {
         require(_earningsToDate > 0, "You are trying to claim 0 rewards");
         distributor.claim(address(this), _earningsToDate, _nonce, _signature);
     }
