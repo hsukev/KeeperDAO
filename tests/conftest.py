@@ -38,13 +38,16 @@ def strategist(accounts):
 def keeper(accounts):
     yield accounts[5]
 
+
 fixtures = "token, amount"
 params = [
     pytest.param("0x6b175474e89094c44da98b954eedeac495271d0f", "0xd551234ae421e3bcba99a0da6d736074f22192ff", id="dai"),
     pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", id="usdc"),
     pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x2f0b23f53734252bda2277357e97e1517d6b042a", id="weth"),
-    pytest.param("0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D", "0x93054188d876f558f4a66b2ef1d97d16edf0895b", id="renBTC")
+    pytest.param("0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D", "0x93054188d876f558f4a66b2ef1d97d16edf0895b",
+                 id="renBTC")
 ]
+
 
 @pytest.fixture
 def token(request):
@@ -100,7 +103,7 @@ def crv_whale(accounts):
 def vault(pm, gov, rewards, guardian, management, token):
     Vault = pm(config["dependencies"][0]).Vault
     vault = guardian.deploy(Vault)
-    vault.initialize(token, gov, rewards, "", "", guardian)
+    vault.initialize(token, gov, rewards, "", "", guardian, {"from": gov})
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
     yield vault
@@ -110,18 +113,25 @@ def vault(pm, gov, rewards, guardian, management, token):
 def dai_vault(pm, gov, rewards, guardian, management, dai):
     Vault = pm(config["dependencies"][0]).Vault
     vault = guardian.deploy(Vault)
-    vault.initialize(dai, gov, rewards, "", "", guardian)
+    vault.initialize(dai, gov, rewards, "", "", guardian, {"from": gov})
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
     yield vault
 
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, Strategy, gov):
+def strategy(strategist, keeper, vault, Strategy, gov, marketplace):
     strategy = strategist.deploy(Strategy, vault)
-    strategy.setKeeper(keeper)
-    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
+    strategy.setMarketplace(marketplace, {"from": gov})
+    strategy.setKeeper(keeper, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
     yield strategy
+
+
+@pytest.fixture
+def marketplace(strategist, Marketplace):
+    marketplace = strategist.deploy(Marketplace, "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
+    yield marketplace
 
 
 @pytest.fixture

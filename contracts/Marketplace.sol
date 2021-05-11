@@ -24,14 +24,25 @@ contract Marketplace is IMarketplaceV1, Ownable {
     }
 
     function swap(IERC20 _fromToken, IERC20 _toToken, uint256 _amountIn, uint256 _amountMinOut, address to) external override {
-        _fromToken.safeApprove(address(uniswapRouter), uint256(_amountIn));
-        address[] memory _sellPath = _getPath(address(_fromToken), address(_toToken));
-        uniswapRouter.swapExactTokensForTokens(_amountIn, _amountMinOut, _sellPath, to, now);
+        if (_amountIn > 0) {
+            _fromToken.safeTransferFrom(msg.sender, address(this), _amountIn);
+            _fromToken.approve(address(uniswapRouter), _amountIn);
+            address[] memory _sellPath = _getPath(address(_fromToken), address(_toToken));
+            uniswapRouter.swapExactTokensForTokens(_amountIn, _amountMinOut, _sellPath, to, now);
+        }
     }
 
     function getExpectedReturn(IERC20 _fromToken, IERC20 _toToken, uint256 _amountIn) external view override returns (uint256 returnAmount){
-        address[] memory _sellPath = _getPath(address(_fromToken), address(_toToken));
-        return uniswapRouter.getAmountsOut(_amountIn, _sellPath)[_sellPath.length - 1];
+        if (_fromToken == _toToken) {
+            return _amountIn;
+        }
+
+        if (_amountIn > 0) {
+            address[] memory _sellPath = _getPath(address(_fromToken), address(_toToken));
+            return uniswapRouter.getAmountsOut(_amountIn, _sellPath)[_sellPath.length - 1];
+        } else {
+            return 0;
+        }
     }
 
     function currentMarket() external override returns (address){

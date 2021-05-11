@@ -66,7 +66,6 @@ contract Strategy is BaseStrategyInitializable {
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
         want.safeApprove(address(pool), uint256(- 1));
-        rook.safeApprove(address(marketplace), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
         treasury = address(0x93A62dA5a14C80f265DAbC077fCEE437B1a0Efde);
         distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
@@ -264,8 +263,8 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function setMarketplace(address _marketplace) external onlyGovernance {
-        rook.approve(address(marketplace), uint256(0));
         rook.approve(address(_marketplace), uint256(- 1));
+        want.approve(address(_marketplace), uint256(- 1));
         marketplace = IMarketplaceV1(_marketplace);
     }
 
