@@ -3,12 +3,13 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import {BaseStrategyInitializable} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/keeperDao.sol";
+import "../interfaces/marketplace.sol";
 import "../interfaces/uniswap.sol";
-import "./BaseStrategyEdited.sol";
 
 interface IName {
     function name() external view returns (string memory);
@@ -19,20 +20,18 @@ contract Strategy is BaseStrategyInitializable {
     using Address for address;
     using SafeMath for uint256;
 
-    IUniswapV2Router02 constant public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
     ILiquidityPoolV2 constant public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
     IERC20 constant public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
     IERC20 constant public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
 
+    IMarketplaceV1 public marketplace;
     IDistributeV1 public distributor;
     IKToken public kToken;
 
-    address[] public path;
-    address[] public wethWantPath;
     address public treasury;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fees
-    uint256 private incurredLosses = 0;
+    uint256 public incurredLosses;
     // amount to send to treasury. Used for future governance voting power
     uint256 public percentKeep;
     uint256 public constant _denominator = 10000;
@@ -67,17 +66,11 @@ contract Strategy is BaseStrategyInitializable {
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
         want.safeApprove(address(pool), uint256(- 1));
-        rook.safeApprove(address(uniswapRouter), uint256(- 1));
+        rook.safeApprove(address(marketplace), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
         treasury = address(0x93A62dA5a14C80f265DAbC077fCEE437B1a0Efde);
         distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
 
-        if (address(want) == address(weth)) {
-            path = [address(rook), address(weth)];
-        } else {
-            path = [address(rook), address(weth), address(want)];
-            wethWantPath = [address(weth), address(want)];
-        }
     }
 
     function name() external view override returns (string memory) {
@@ -88,7 +81,7 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return valueOfStaked().add(balanceOfUnstaked()).add(_estimateAmountsOut(balanceOfReward(), path));
+        return valueOfStaked().add(balanceOfUnstaked()).add(valueOfReward());
     }
 
     function balanceOfUnstaked() public view returns (uint256){
@@ -110,7 +103,7 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function valueOfReward() public view returns (uint256){
-        return _estimateAmountsOut(rook.balanceOf(address(this)), path);
+        return marketplace.getExpectedReturn(rook, want, balanceOfReward());
     }
 
     // only way to find out is thru calculating a virtual price this way
@@ -223,17 +216,13 @@ contract Strategy is BaseStrategyInitializable {
     // Trigger harvest only if strategy has rewards, otherwise, there's nothing to harvest.
     // This logic is added on top of existing gas efficient harvestTrigger() in the parent class
     function harvestTrigger(uint256 callCost) public override view returns (bool) {
-        return super.harvestTrigger(_estimateAmountsOut(callCost, wethWantPath)) && balanceOfReward() > 0 && netPositive();
+        return super.harvestTrigger(marketplace.getExpectedReturn(weth, want, callCost)) && balanceOfReward() > 0 && netPositive();
     }
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
     // Adding this to harvestTrigger() will ensure that strategy will never have to report a positive _loss to the vault and lower its trust
-    function netPositive() public view onlyKeepers returns (bool){
-        return _estimateAmountsOut(balanceOfReward(), path) > incurredLosses;
-    }
-
-    function getIncurredLosses() public view onlyKeepers returns (uint256){
-        return incurredLosses;
+    function netPositive() public view returns (bool){
+        return valueOfReward() > incurredLosses;
     }
 
     // Has to be called manually since this requires off-chain data.
@@ -251,20 +240,8 @@ contract Strategy is BaseStrategyInitializable {
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
         if (balanceOfReward() > 0) {
-            uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
+            marketplace.swap(rook, want, _amount, 0, address(this));
         }
-    }
-
-    function _estimateAmountsOut(uint256 _amount, address[] memory sellPath) public view returns (uint256){
-        uint256 amountOut = 0;
-        if (sellPath.length <= 0) {
-            return _amount;
-        }
-
-        if (_amount > 0) {
-            amountOut = uniswapRouter.getAmountsOut(_amount, sellPath)[sellPath.length - 1];
-        }
-        return amountOut;
     }
 
     function protectedTokens() internal view override returns (address[] memory){
@@ -284,6 +261,12 @@ contract Strategy is BaseStrategyInitializable {
 
     function setTreasury(address _treasury) external onlyGovernance {
         treasury = _treasury;
+    }
+
+    function setMarketplace(address _marketplace) external onlyGovernance {
+        rook.approve(address(marketplace), uint256(0));
+        rook.approve(address(_marketplace), uint256(- 1));
+        marketplace = IMarketplaceV1(_marketplace);
     }
 
     receive() external payable {}
