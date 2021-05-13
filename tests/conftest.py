@@ -120,8 +120,8 @@ def dai_vault(pm, gov, rewards, guardian, management, dai):
 
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, Strategy, gov, marketplace):
-    strategy = strategist.deploy(Strategy, vault)
+def strategy(strategist, keeper, vault, Strategy, gov, marketplace, weth, rewards, pool, rook_distributor, rook):
+    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth)
     strategy.setMarketplace(marketplace, {"from": gov})
     strategy.setKeeper(keeper, {"from": gov})
     vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
@@ -129,11 +129,27 @@ def strategy(strategist, keeper, vault, Strategy, gov, marketplace):
 
 
 @pytest.fixture
-def marketplace(strategist, Marketplace):
-    marketplace = strategist.deploy(Marketplace, "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D")
+def marketplace(strategist, Marketplace, uniswap_v2_router):
+    marketplace = strategist.deploy(Marketplace, uniswap_v2_router)
     yield marketplace
 
 
 @pytest.fixture
 def rook_whale(accounts):
     yield accounts.at("0xb81f5b9bd373b9d0df2e3191a01b8fa9b4d2832a", force=True)
+
+
+@pytest.fixture
+def uniswap_v2_router(accounts):
+    yield accounts.at("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", force=True)
+
+
+@pytest.fixture
+def rook_distributor(accounts):
+    yield accounts.at("0x2777b798fdfB906d42B89CF8f9de541dB05DD6a1", force=True)
+
+
+@pytest.fixture
+def pool():
+    token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
+    yield Contract(token_address)

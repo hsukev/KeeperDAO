@@ -27,8 +27,8 @@ interface IKToken {
     function renounceMinter() external;
 }
 
-interface ILiquidityPoolV2 {
-    function depositFeeInBips() external returns (uint256);
+interface ILiquidityPool {
+    function depositFeeInBips() external view returns (uint256);
 
     function kToken(address _token) external view returns (IKToken);
 

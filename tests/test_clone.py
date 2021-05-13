@@ -11,16 +11,19 @@ import conftest as config
     pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8",
                  id="usdc")], indirect=True)
 def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale,
-               amount, marketplace):
+               amount, marketplace, pool, rook_distributor, weth):
     with brownie.reverts():
-        strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
+        strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+                      {"from": gov})
 
-    transaction = strategy.clone(dai_vault, strategist, rewards, keeper, {"from": gov})
+    transaction = strategy.clone(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+                                 {"from": gov})
     cloned_strategy = Strategy.at(transaction.return_value)
     assert cloned_strategy.name() == "StrategyRook Dai Stablecoin"
 
     with brownie.reverts():
-        cloned_strategy.initialize(dai_vault, strategist, rewards, keeper, {"from": gov})
+        cloned_strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+                             {"from": gov})
 
     # test harvest for cloned strategy
     # dai whale
@@ -41,7 +44,10 @@ def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy,
     #
     # harvest
     strategy.harvest({"from": gov})
-    assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
+
+    # assert eta is there, accouting for deposit fee
+
+    assert pytest.approx(strategy.estimatedTotalAssets(), rel=amount * 0.0064) == amount
 
     assets_before = vault.totalAssets()
 

@@ -20,14 +20,12 @@ contract Strategy is BaseStrategyInitializable {
     using Address for address;
     using SafeMath for uint256;
 
-    ILiquidityPoolV2 constant public pool = ILiquidityPoolV2(address(0x35fFd6E268610E764fF6944d07760D0EFe5E40E5));
-    IERC20 constant public rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
-    IERC20 constant public weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
-
+    IERC20 public rewardToken;
+    IERC20 public weth;
     IMarketplaceV1 public marketplace;
     IDistributeV1 public distributor;
     IKToken public kToken;
-
+    ILiquidityPool public pool;
     address public treasury;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fees
@@ -36,25 +34,71 @@ contract Strategy is BaseStrategyInitializable {
     uint256 public percentKeep;
     uint256 public constant _denominator = 10000;
 
-    constructor(address _vault) public BaseStrategyInitializable(_vault) {
-        init(_vault, msg.sender, msg.sender, msg.sender);
+    constructor(address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper,
+        address _pool,
+        address _voter,
+        address _rewardDistributor,
+        address _rewardToken,
+        address _weth
+    ) public BaseStrategyInitializable(_vault) {
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
     }
 
-    function initialize(
+    function clone(
         address _vault,
         address _strategist,
         address _rewards,
-        address _keeper
-    ) external override {
-        super._initialize(_vault, _strategist, _rewards, _keeper);
-        init(_vault, msg.sender, msg.sender, msg.sender);
+        address _keeper,
+        address _pool,
+        address _voter,
+        address _rewardDistributor,
+        address _rewardToken,
+        address _weth
+    ) external returns (address payable newStrategy) {
+        // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
+        bytes20 addressBytes = bytes20(address(this));
+
+        assembly {
+        // EIP-1167 bytecode
+            let clone_code := mload(0x40)
+            mstore(clone_code, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
+            mstore(add(clone_code, 0x14), addressBytes)
+            mstore(add(clone_code, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
+            newStrategy := create(0, clone_code, 0x37)
+        }
+
+        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
+        emit Cloned(newStrategy);
     }
 
     function init(
         address _vault,
         address _strategist,
         address _rewards,
-        address _keeper
+        address _keeper,
+        address _pool,
+        address _voter,
+        address _rewardDistributor,
+        address _rewardToken,
+        address _weth
+    ) external {
+        super._initialize(_vault, _strategist, _rewards, _keeper);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
+    }
+
+    function _init(
+        address _vault,
+        address _strategist,
+        address _rewards,
+        address _keeper,
+        address _pool,
+        address _voter,
+        address _rewardDistributor,
+        address _rewardToken,
+        address _weth
     ) internal {
 
         // You can set these parameters on deployment to whatever you want
@@ -63,13 +107,15 @@ contract Strategy is BaseStrategyInitializable {
         // debtThreshold = 0;
 
         // check to see if KeeperDao can actually accept want (renBTC, DAI, USDC, ETH, WETH)
+        pool = ILiquidityPool(address(_pool));
         kToken = pool.kToken(address(want));
         require(address(kToken) != address(0x0), "Protocol doesn't support this token!");
         want.safeApprove(address(pool), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
-        treasury = address(0x93A62dA5a14C80f265DAbC077fCEE437B1a0Efde);
-        distributor = IDistributeV1(address(0xcadF6735144D1d7f1A875a5561555cBa5df2f75C));
-
+        treasury = address(_voter);
+        rewardToken = IERC20(address(_rewardToken));
+        weth = IERC20(address(_weth));
+        distributor = IDistributeV1(address(_rewardDistributor));
     }
 
     function name() external view override returns (string memory) {
@@ -98,11 +144,11 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function balanceOfReward() public view returns (uint256){
-        return rook.balanceOf(address(this));
+        return rewardToken.balanceOf(address(this));
     }
 
     function valueOfReward() public view returns (uint256){
-        return marketplace.getExpectedReturn(rook, want, balanceOfReward());
+        return marketplace.getExpectedReturn(rewardToken, want, balanceOfReward());
     }
 
     // only way to find out is thru calculating a virtual price this way
@@ -120,7 +166,7 @@ contract Strategy is BaseStrategyInitializable {
         if (rewards > 0) {
             uint256 rewardsForVoting = rewards.mul(percentKeep).div(_denominator);
             if (rewardsForVoting > 0) {
-                IERC20(rook).safeTransfer(treasury, rewardsForVoting);
+                IERC20(rewardToken).safeTransfer(treasury, rewardsForVoting);
             }
             uint256 rewardsRemaining = balanceOfReward();
             _sell(rewardsRemaining);
@@ -209,7 +255,7 @@ contract Strategy is BaseStrategyInitializable {
     // See {claimRewards()} for detail
     function prepareMigration(address _newStrategy) internal override {
         kToken.transfer(_newStrategy, balanceOfStaked());
-        rook.transfer(_newStrategy, balanceOfReward());
+        rewardToken.transfer(_newStrategy, balanceOfReward());
     }
 
     // Trigger harvest only if strategy has rewards, otherwise, there's nothing to harvest.
@@ -239,14 +285,14 @@ contract Strategy is BaseStrategyInitializable {
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
         if (balanceOfReward() > 0) {
-            marketplace.swap(rook, want, _amount, 0, address(this));
+            marketplace.swap(rewardToken, want, _amount, 0, address(this));
         }
     }
 
     function protectedTokens() internal view override returns (address[] memory){
         address[] memory protected = new address[](2);
         protected[0] = address(kToken);
-        protected[1] = address(rook);
+        protected[1] = address(rewardToken);
         return protected;
     }
 
@@ -254,7 +300,7 @@ contract Strategy is BaseStrategyInitializable {
         percentKeep = _percentKeep;
     }
 
-    function setDistributor(address _distributor) external onlyKeepers {
+    function setDistributor(address _distributor) external onlyAuthorized {
         distributor = IDistributeV1(address(_distributor));
     }
 
@@ -262,8 +308,24 @@ contract Strategy is BaseStrategyInitializable {
         treasury = _treasury;
     }
 
+    function setLiquidityPool(address _pool) external onlyAuthorized {
+        pool = ILiquidityPool(_pool);
+    }
+
+    function setRewardToken(address _rewardToken) external onlyAuthorized {
+        rewardToken = IERC20(_rewardToken);
+    }
+
+    function setWeth(address _weth) external onlyAuthorized {
+        weth = IERC20(_weth);
+    }
+
+    function currentDepositFee() external view returns (uint256){
+        return pool.depositFeeInBips();
+    }
+
     function setMarketplace(address _marketplace) external onlyGovernance {
-        rook.approve(address(_marketplace), uint256(- 1));
+        rewardToken.approve(address(_marketplace), uint256(- 1));
         want.approve(address(_marketplace), uint256(- 1));
         marketplace = IMarketplaceV1(_marketplace);
     }

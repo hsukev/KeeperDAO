@@ -38,7 +38,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     #
     # harvest
     strategy.harvest()
-    assert abs(strategy.estimatedTotalAssets() - amount * 0.9936) < 10000
+    assert pytest.approx(strategy.estimatedTotalAssets(), rel=amount * 0.0064) == amount
 
     assets_before = vault.totalAssets()
 
@@ -119,8 +119,8 @@ def test_triggers(gov, vault, strategy, token, amount, rook, rook_whale):
     strategy.tendTrigger(0)
 
     # give it a tiny bit of reward, but not enough to trigger harvest
-    rook.transfer(strategy.address, 1 * 10 ** 4, {"from": rook_whale})
-    assert strategy.harvestTrigger(0) == False
+    rook.transfer(strategy.address, 1 * 10 ** 13, {"from": rook_whale})
+    assert strategy.harvestTrigger(0) == (strategy.currentDepositFee() == 0)
 
     # give it enough reward to trigger harvest
     rook.transfer(strategy.address, 1 * 10 ** 18, {"from": rook_whale})
