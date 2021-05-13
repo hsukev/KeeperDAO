@@ -39,7 +39,7 @@ def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy,
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})
     vault.deposit(amount, {"from": accounts[0]})
-    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
     assert token.balanceOf(vault.address) == amount
     #
     # harvest

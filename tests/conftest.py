@@ -124,7 +124,7 @@ def strategy(strategist, keeper, vault, Strategy, gov, marketplace, weth, reward
     strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth)
     strategy.setMarketplace(marketplace, {"from": gov})
     strategy.setKeeper(keeper, {"from": gov})
-    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
     yield strategy
 
 
