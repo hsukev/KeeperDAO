@@ -13,16 +13,18 @@ import conftest as config
 def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale,
                amount, marketplace, pool, rook_distributor, weth):
     with brownie.reverts():
-        strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+        strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth, marketplace,
                       {"from": gov})
 
     transaction = strategy.clone(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+                                 marketplace,
                                  {"from": gov})
     cloned_strategy = Strategy.at(transaction.return_value)
     assert cloned_strategy.name() == "StrategyRook Dai Stablecoin"
 
     with brownie.reverts():
         cloned_strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth,
+                             marketplace,
                              {"from": gov})
 
     # test harvest for cloned strategy
@@ -34,7 +36,6 @@ def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy,
     token = dai
     vault = dai_vault
     strategy = cloned_strategy
-    strategy.setMarketplace(marketplace, {"from": gov})
 
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})

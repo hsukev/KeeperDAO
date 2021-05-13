@@ -42,9 +42,10 @@ contract Strategy is BaseStrategyInitializable {
         address _voter,
         address _rewardDistributor,
         address _rewardToken,
-        address _weth
+        address _weth,
+        address _marketplace
     ) public BaseStrategyInitializable(_vault) {
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
     }
 
     function clone(
@@ -56,7 +57,8 @@ contract Strategy is BaseStrategyInitializable {
         address _voter,
         address _rewardDistributor,
         address _rewardToken,
-        address _weth
+        address _weth,
+        address _marketplace
     ) external returns (address payable newStrategy) {
         // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         bytes20 addressBytes = bytes20(address(this));
@@ -70,7 +72,7 @@ contract Strategy is BaseStrategyInitializable {
             newStrategy := create(0, clone_code, 0x37)
         }
 
-        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
+        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
         emit Cloned(newStrategy);
     }
 
@@ -83,10 +85,11 @@ contract Strategy is BaseStrategyInitializable {
         address _voter,
         address _rewardDistributor,
         address _rewardToken,
-        address _weth
+        address _weth,
+        address _marketplace
     ) external {
         super._initialize(_vault, _strategist, _rewards, _keeper);
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
     }
 
     function _init(
@@ -98,7 +101,8 @@ contract Strategy is BaseStrategyInitializable {
         address _voter,
         address _rewardDistributor,
         address _rewardToken,
-        address _weth
+        address _weth,
+        address _marketplace
     ) internal {
 
         // You can set these parameters on deployment to whatever you want
@@ -115,6 +119,9 @@ contract Strategy is BaseStrategyInitializable {
         treasury = address(_voter);
         rewardToken = IERC20(address(_rewardToken));
         weth = IERC20(address(_weth));
+        rewardToken.approve(address(_marketplace), uint256(- 1));
+        want.approve(address(_marketplace), uint256(- 1));
+        marketplace = IMarketplaceV1(_marketplace);
         distributor = IDistributeV1(address(_rewardDistributor));
     }
 
