@@ -45,10 +45,6 @@ contract Marketplace is IMarketplaceV1, Ownable {
         }
     }
 
-    function currentMarket() external override returns (address){
-        return address(uniswapRouter);
-    }
-
     function _getPath(address assetIn, address assetOut) internal view returns (address[] memory path) {
         if (assetIn == weth || assetOut == weth) {
             path = new address[](2);

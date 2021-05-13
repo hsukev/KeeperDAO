@@ -146,7 +146,7 @@ def uniswap_v2_router(accounts):
 
 @pytest.fixture
 def rook_distributor(accounts):
-    yield accounts.at("0x2777b798fdfB906d42B89CF8f9de541dB05DD6a1", force=True)
+    yield accounts.at("0x59FF8975c813C1E70Bdf2bCB8C02886928e4eA2D", force=True)
 
 
 @pytest.fixture
