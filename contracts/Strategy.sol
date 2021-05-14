@@ -8,7 +8,6 @@ import {SafeERC20, SafeMath, IERC20, Address} from "@openzeppelin/contracts/toke
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/keeperDao.sol";
-import "../interfaces/marketplace.sol";
 import "../interfaces/uniswap.sol";
 
 interface IName {
@@ -20,13 +19,17 @@ contract Strategy is BaseStrategyInitializable {
     using Address for address;
     using SafeMath for uint256;
 
-    IERC20 public rewardToken;
-    IERC20 public weth;
-    IMarketplaceV1 public marketplace;
+    IUniswapV2Router02 constant public uniswapRouter = IUniswapV2Router02(address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D));
+    IUniswapV2Router02 constant public sushiswapRouter = IUniswapV2Router02(address(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F));
+    IERC20 public constant weth = IERC20(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2));
+    IERC20 public constant rook = IERC20(address(0xfA5047c9c78B8877af97BDcb85Db743fD7313d4a));
+    IUniswapV2Router02 public router;
     IDistributeV1 public distributor;
     IKToken public kToken;
     ILiquidityPool public pool;
     address public treasury;
+    address[] public path;
+    address[] public wethWantPath;
 
     // unsigned. Indicates the losses incurred from the protocol's deposit fees
     uint256 public incurredLosses;
@@ -40,12 +43,9 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor,
-        address _rewardToken,
-        address _weth,
-        address _marketplace
+        address _rewardDistributor
     ) public BaseStrategyInitializable(_vault) {
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
     }
 
     function clone(
@@ -55,10 +55,7 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor,
-        address _rewardToken,
-        address _weth,
-        address _marketplace
+        address _rewardDistributor
     ) external returns (address payable newStrategy) {
         // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         bytes20 addressBytes = bytes20(address(this));
@@ -72,7 +69,7 @@ contract Strategy is BaseStrategyInitializable {
             newStrategy := create(0, clone_code, 0x37)
         }
 
-        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
+        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
         emit Cloned(newStrategy);
     }
 
@@ -83,13 +80,10 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor,
-        address _rewardToken,
-        address _weth,
-        address _marketplace
+        address _rewardDistributor
     ) external {
         super._initialize(_vault, _strategist, _rewards, _keeper);
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _rewardToken, _weth, _marketplace);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
     }
 
     function _init(
@@ -99,10 +93,7 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor,
-        address _rewardToken,
-        address _weth,
-        address _marketplace
+        address _rewardDistributor
     ) internal {
 
         // You can set these parameters on deployment to whatever you want
@@ -117,12 +108,16 @@ contract Strategy is BaseStrategyInitializable {
         want.safeApprove(address(pool), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
         treasury = address(_voter);
-        rewardToken = IERC20(address(_rewardToken));
-        weth = IERC20(address(_weth));
-        rewardToken.approve(address(_marketplace), uint256(- 1));
-        want.approve(address(_marketplace), uint256(- 1));
-        marketplace = IMarketplaceV1(_marketplace);
+        rook.approve(address(uniswapRouter), uint256(- 1));
+        rook.approve(address(sushiswapRouter), uint256(- 1));
         distributor = IDistributeV1(address(_rewardDistributor));
+
+        if (address(want) == address(weth)) {
+            path = [address(rook), address(weth)];
+        } else {
+            path = [address(rook), address(weth), address(want)];
+            wethWantPath = [address(weth), address(want)];
+        }
     }
 
     function name() external view override returns (string memory) {
@@ -151,11 +146,11 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function balanceOfReward() public view returns (uint256){
-        return rewardToken.balanceOf(address(this));
+        return rook.balanceOf(address(this));
     }
 
     function valueOfReward() public view returns (uint256){
-        return marketplace.getExpectedReturn(rewardToken, want, balanceOfReward());
+        return _estimateAmountsOut(rook.balanceOf(address(this)), path);
     }
 
     // only way to find out is thru calculating a virtual price this way
@@ -173,10 +168,12 @@ contract Strategy is BaseStrategyInitializable {
         if (rewards > 0) {
             uint256 rewardsForVoting = rewards.mul(percentKeep).div(_denominator);
             if (rewardsForVoting > 0) {
-                IERC20(rewardToken).safeTransfer(treasury, rewardsForVoting);
+                IERC20(rook).safeTransfer(treasury, rewardsForVoting);
             }
             uint256 rewardsRemaining = balanceOfReward();
-            _sell(rewardsRemaining);
+            if (rewardsRemaining > 0) {
+                _sell(rewardsRemaining);
+            }
         }
 
         // from selling rewards
@@ -262,13 +259,13 @@ contract Strategy is BaseStrategyInitializable {
     // See {claimRewards()} for detail
     function prepareMigration(address _newStrategy) internal override {
         kToken.transfer(_newStrategy, balanceOfStaked());
-        rewardToken.transfer(_newStrategy, balanceOfReward());
+        rook.transfer(_newStrategy, balanceOfReward());
     }
 
     // Trigger harvest only if strategy has rewards, otherwise, there's nothing to harvest.
     // This logic is added on top of existing gas efficient harvestTrigger() in the parent class
     function harvestTrigger(uint256 callCost) public override view returns (bool) {
-        return super.harvestTrigger(marketplace.getExpectedReturn(weth, want, callCost)) && balanceOfReward() > 0 && netPositive();
+        return super.harvestTrigger(_estimateAmountsOut(callCost, wethWantPath)) && balanceOfReward() > 0 && netPositive();
     }
 
     // Indicator for whether strategy has earned enough rewards to offset incurred losses.
@@ -291,15 +288,25 @@ contract Strategy is BaseStrategyInitializable {
 
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
-        if (balanceOfReward() > 0) {
-            marketplace.swap(rewardToken, want, _amount, 0, address(this));
+        uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
+    }
+
+    function _estimateAmountsOut(uint256 _amount, address[] memory sellPath) public view returns (uint256){
+        uint256 amountOut = 0;
+        if (sellPath.length <= 0) {
+            return _amount;
         }
+
+        if (_amount > 0) {
+            amountOut = uniswapRouter.getAmountsOut(_amount, sellPath)[sellPath.length - 1];
+        }
+        return amountOut;
     }
 
     function protectedTokens() internal view override returns (address[] memory){
         address[] memory protected = new address[](2);
         protected[0] = address(kToken);
-        protected[1] = address(rewardToken);
+        protected[1] = address(rook);
         return protected;
     }
 
@@ -307,7 +314,7 @@ contract Strategy is BaseStrategyInitializable {
         percentKeep = _percentKeep;
     }
 
-    function setDistributor(address _distributor) external onlyAuthorized {
+    function setDistributor(address _distributor) external onlyGovernance {
         distributor = IDistributeV1(address(_distributor));
     }
 
@@ -315,26 +322,19 @@ contract Strategy is BaseStrategyInitializable {
         treasury = _treasury;
     }
 
-    function setLiquidityPool(address _pool) external onlyAuthorized {
+    function setLiquidityPool(address _pool) external onlyGovernance {
+        want.safeApprove(address(_pool), uint256(- 1));
+        kToken.approve(address(_pool), uint256(- 1));
         pool = ILiquidityPool(_pool);
-    }
-
-    function setRewardToken(address _rewardToken) external onlyAuthorized {
-        rewardToken = IERC20(_rewardToken);
-    }
-
-    function setWeth(address _weth) external onlyAuthorized {
-        weth = IERC20(_weth);
     }
 
     function currentDepositFee() external view returns (uint256){
         return pool.depositFeeInBips();
     }
 
-    function setMarketplace(address _marketplace) external onlyGovernance {
-        rewardToken.approve(address(_marketplace), uint256(- 1));
-        want.approve(address(_marketplace), uint256(- 1));
-        marketplace = IMarketplaceV1(_marketplace);
+    function switchDex(bool isUniswap) external onlyAuthorized {
+        if (isUniswap) router = uniswapRouter;
+        else router = sushiswapRouter;
     }
 
     receive() external payable {}
