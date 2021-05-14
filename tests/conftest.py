@@ -120,8 +120,8 @@ def dai_vault(pm, gov, rewards, guardian, management, dai):
 
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook_distributor, rook, marketplace):
-    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, rook, weth, marketplace)
+def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook_distributor):
+    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor)
     strategy.setKeeper(keeper, {"from": gov})
     vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
     yield strategy
