@@ -41,6 +41,12 @@ def main():
         print("You should deploy one vault using scripts from Vault project")
         return  # TODO: Deploy one using scripts from Vault project
 
+    rewards = get_address("Rewards address", dev)
+    keeper = get_address("Keeper address", dev)
+    pool = get_address("Pool address", dev)
+    treasury = get_address("Treasury address", dev)
+    distributor = get_address("Distributor address", dev)
+
     print(
         f"""
     Strategy Parameters
@@ -55,4 +61,4 @@ def main():
     if input("Deploy Strategy? y/[N]: ").lower() != "y":
         return
 
-    strategy = Strategy.deploy(vault, {"from": dev}, publish_source=publish_source)
+    strategy = Strategy.deploy(vault, dev, rewards, keeper, pool, treasury, distributor, {"from": dev}, publish_source=publish_source)
