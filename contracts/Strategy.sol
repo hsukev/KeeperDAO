@@ -108,6 +108,7 @@ contract Strategy is BaseStrategyInitializable {
         want.safeApprove(address(pool), uint256(- 1));
         kToken.approve(address(pool), uint256(- 1));
         treasury = address(_voter);
+        router = uniswapRouter;
         rook.approve(address(uniswapRouter), uint256(- 1));
         rook.approve(address(sushiswapRouter), uint256(- 1));
         distributor = IDistributeV1(address(_rewardDistributor));
@@ -288,7 +289,7 @@ contract Strategy is BaseStrategyInitializable {
 
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
-        uniswapRouter.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
+        router.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);
     }
 
     function _estimateAmountsOut(uint256 _amount, address[] memory sellPath) public view returns (uint256){
@@ -298,7 +299,7 @@ contract Strategy is BaseStrategyInitializable {
         }
 
         if (_amount > 0) {
-            amountOut = uniswapRouter.getAmountsOut(_amount, sellPath)[sellPath.length - 1];
+            amountOut = router.getAmountsOut(_amount, sellPath)[sellPath.length - 1];
         }
         return amountOut;
     }
