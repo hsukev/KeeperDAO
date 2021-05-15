@@ -41,11 +41,11 @@ def main():
         print("You should deploy one vault using scripts from Vault project")
         return  # TODO: Deploy one using scripts from Vault project
 
-    rewards = get_address("Rewards address", dev)
-    keeper = get_address("Keeper address", dev)
-    pool = get_address("Pool address", dev)
-    treasury = get_address("Treasury address", dev)
-    distributor = get_address("Distributor address", dev)
+    rewards = get_address("Rewards address")
+    keeper = get_address("Keeper address")
+    pool = get_address("Pool address")
+    treasury = get_address("Treasury address")
+    distributor = get_address("Distributor address")
 
     print(
         f"""
