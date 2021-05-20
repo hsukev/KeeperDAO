@@ -42,10 +42,7 @@ def keeper(accounts):
 fixtures = "token, amount"
 params = [
     pytest.param("0x6b175474e89094c44da98b954eedeac495271d0f", "0xd551234ae421e3bcba99a0da6d736074f22192ff", id="dai"),
-    pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", id="usdc"),
-    pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x2f0b23f53734252bda2277357e97e1517d6b042a", id="weth"),
-    pytest.param("0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D", "0x93054188d876f558f4a66b2ef1d97d16edf0895b",
-                 id="renBTC")
+    pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", id="usdc")
 ]
 
 
@@ -62,7 +59,7 @@ def dai():
 
 @pytest.fixture
 def amount(accounts, token, request):
-    amount = 1 * 10 ** token.decimals()
+    amount = 100000 * 10 ** token.decimals()
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 

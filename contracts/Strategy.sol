@@ -196,9 +196,9 @@ contract Strategy is BaseStrategyInitializable {
 
         if (_debtOutstanding > _profit) {
             // withdraw just enough to pay off debt
-            uint256 _toWithdraw = Math.min(_debtOutstanding.sub(_profit), valueOfStaked());
+            uint256 _toWithdraw = Math.min(_debtOutstanding, valueOfStaked());
             pool.withdraw(address(this), kToken, _inKTokens(_toWithdraw));
-            _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked());
+            _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked().sub(_profit));
 
         } else {
             _debtPayment = _debtOutstanding;

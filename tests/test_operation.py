@@ -60,7 +60,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
 
 
 @pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
-def test_change_debt(gov, token, vault, strategy, strategist, amount):
+def test_change_debt(gov, token, vault, strategy, strategist, amount, rook, rook_whale):
     # Deposit to the vault and harvest
     token.approve(vault.address, amount, {"from": gov})
     vault.deposit(amount, {"from": gov})
@@ -75,10 +75,19 @@ def test_change_debt(gov, token, vault, strategy, strategist, amount):
     # since there's a deposit fee, we just want to check within a reasonable margin like 1%
     assert (amount) * 1.01 > strategy.estimatedTotalAssets() > (amount) * .99
 
+    # give it some reward to simulate prod situation
+    rook.transfer(strategy.address, 2 * 10 ** 18, {"from": rook_whale})
     vault.updateStrategyDebtRatio(strategy.address, 5_000, {"from": gov})
     strategy.harvest()
-    # Larger margin bc deposit was never recovered before debtRatio was lowered
+    # Larger margin bc deposit fee was never recovered before debtRatio was lowered
     assert amount / 2 * 1.02 > strategy.estimatedTotalAssets() > amount / 2 * .98
+
+    # give it some reward to simulate prod situation
+    rook.transfer(strategy.address, 1 * 10 ** 18, {"from": rook_whale})
+    vault.updateStrategyDebtRatio(strategy.address, 0, {"from": gov})
+    strategy.harvest()
+    # Larger margin bc deposit fee was never recovered before debtRatio was lowered
+    assert (0 + amount * .02) > strategy.estimatedTotalAssets() > 0
 
 
 @pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
