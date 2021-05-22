@@ -146,15 +146,8 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
 
     # migrate to a new strategy
     new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor)
-    strategy_live.migrate(new_strategy.address, {"from": gov_live})
+    live_vault.migrateStrategy(strategy_live, new_strategy.address, {"from": gov_live})
     assert new_strategy.estimatedTotalAssets() == old
-
-    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
-    params = live_vault.strategies(strategy_live)
-    currentDetbRatio = params.dict()['debtRatio']
-    live_vault.updateStrategyDebtRatio(strategy_live, 0, {"from": ms})
-    live_vault.addStrategy(new_strategy, 0, 0, 1000, {"from": gov_live})
-    live_vault.updateStrategyDebtRatio(new_strategy, currentDetbRatio, {"from": ms})
 
     before = live_vault.totalAssets()
     print('before harvest')
