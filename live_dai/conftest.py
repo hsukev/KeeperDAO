@@ -47,17 +47,16 @@ def dai():
 
 @pytest.fixture
 def dai_whale(accounts):
-    yield accounts.at("0xd551234ae421e3bcba99a0da6d736074f22192ff", force=True)
+    yield accounts.at("0x5d3a536e4d6dbd6114cc1ead35777bab948e3643", force=True)
 
 
 @pytest.fixture
-def amount(accounts, dai, gov_live):
+def amount(accounts, dai, gov_live, dai_whale):
     amount = 100000 * 10 ** dai.decimals()
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 
-    reserve = accounts.at("0xd551234ae421e3bcba99a0da6d736074f22192ff", force=True)
-    dai.transfer(gov_live, amount, {"from": reserve})
+    dai.transfer(gov_live, amount, {"from": dai_whale})
     yield amount
 
 
@@ -153,6 +152,7 @@ def gov_live(accounts):
 @pytest.fixture
 def rook_whale(accounts):
     yield accounts.at("0xb81f5b9bd373b9d0df2e3191a01b8fa9b4d2832a", force=True)
+
 
 @pytest.fixture
 def rook_distributor(accounts):

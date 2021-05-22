@@ -85,10 +85,6 @@ def test_triggers(gov_live, live_vault, strategy_live, dai, amount, rook, rook_w
     assert strategy_live.harvestTrigger(0, {"from": gov_live}) == False
     strategy_live.tendTrigger(0, {"from": gov_live})
 
-    # give it a tiny bit of reward, but not enough to trigger harvest
-    rook.transfer(strategy_live.address, 1 * 10 ** 13, {"from": rook_whale})
-    assert strategy_live.harvestTrigger(0) == (strategy_live.currentDepositFee() == 0)
-
     # give it enough reward to trigger harvest
     rook.transfer(strategy_live.address, 1 * 10 ** 18, {"from": rook_whale})
     strategyBreakdown(strategy_live, dai, live_vault)
@@ -137,3 +133,37 @@ def test_migration(dai, live_vault, strategy_live, amount, Strategy, gov_live, s
     new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor)
     strategy_live.migrate(new_strategy.address, {"from": gov_live})
     assert new_strategy.estimatedTotalAssets() > amount * .99
+
+
+def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
+                               rook_distributor, rook,
+                               weth, rewards, keeper, accounts, web3, chain):
+    # Deposit to the vault and harvest
+    strategy_live.claimRewards(49106129878575550464, 12479745,
+                               0x439dfb3326d340f0b21da115dffbfadc31005a6efe3f9d09a300e64094da72206d698bc366c00a6de6798998b75707a969899070f1bd42b8b622353f2e2020f91c,
+                               {'from': gov_live})
+    old = strategy_live.estimatedTotalAssets()
+
+    # migrate to a new strategy
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor)
+    strategy_live.migrate(new_strategy.address, {"from": gov_live})
+    assert new_strategy.estimatedTotalAssets() == old
+
+    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
+    params = live_vault.strategies(strategy_live)
+    currentDetbRatio = params.dict()['debtRatio']
+    live_vault.updateStrategyDebtRatio(strategy_live, 0, {"from": ms})
+    live_vault.addStrategy(new_strategy, 0, 0, 1000, {"from": gov_live})
+    live_vault.updateStrategyDebtRatio(new_strategy, currentDetbRatio, {"from": ms})
+
+    before = live_vault.totalAssets()
+    print('before harvest')
+    strategyBreakdown(new_strategy, dai, live_vault)
+
+    new_strategy.harvest({"from": gov_live})
+    chain.sleep(3600 * 12)  # 6 hrs needed for profits to unlock
+    chain.mine(1)
+    print('after harvest')
+    strategyBreakdown(new_strategy, dai, live_vault)
+
+    assert live_vault.totalAssets() >= before
