@@ -87,7 +87,7 @@ def test_change_debt(gov, token, vault, strategy, strategist, amount, rook, rook
     vault.updateStrategyDebtRatio(strategy.address, 0, {"from": gov})
     strategy.harvest()
     # Larger margin bc deposit fee was never recovered before debtRatio was lowered
-    assert (0 + amount * .02) > strategy.estimatedTotalAssets() > 0
+    assert (0 + amount * .02) > strategy.estimatedTotalAssets() >= 0
 
 
 @pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
@@ -132,5 +132,5 @@ def test_triggers(gov, vault, strategy, token, amount, rook, rook_whale):
     assert strategy.harvestTrigger(0) == (strategy.currentDepositFee() == 0)
 
     # give it enough reward to trigger harvest
-    rook.transfer(strategy.address, 1 * 10 ** 18, {"from": rook_whale})
+    rook.transfer(strategy.address, 10 * 10 ** 18, {"from": rook_whale})
     assert strategy.harvestTrigger(0) == True
