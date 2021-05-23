@@ -134,3 +134,4 @@ def test_triggers(gov, vault, strategy, token, amount, rook, rook_whale):
     # give it enough reward to trigger harvest
     rook.transfer(strategy.address, 10 * 10 ** 18, {"from": rook_whale})
     assert strategy.harvestTrigger(0) == True
+

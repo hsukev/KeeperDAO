@@ -1,4 +1,5 @@
 import brownie
+import urllib.request, json
 
 from live_dai.util import genericStateOfStrat, strategyBreakdown, genericStateOfVault
 
@@ -137,11 +138,17 @@ def test_migration(dai, live_vault, strategy_live, amount, Strategy, gov_live, s
 
 def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
                                rook_distributor, rook,
-                               weth, rewards, keeper, accounts, web3, chain):
+                               weth, rewards, keeper, chain):
+    with urllib.request.urlopen(
+            f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{strategy_live.address}") as url:
+        data = json.loads(url.read().decode())
+        amount = int(data["earnings_to_date"], 16)
+        nonce = int(data["nonce"], 16)
+        signature = data["signature"]
+
+    print(f'\n${amount / 1e18} rooks to claim\n')
     # Deposit to the vault and harvest
-    strategy_live.claimRewards(49106129878575550464, 12479745,
-                               0x439dfb3326d340f0b21da115dffbfadc31005a6efe3f9d09a300e64094da72206d698bc366c00a6de6798998b75707a969899070f1bd42b8b622353f2e2020f91c,
-                               {'from': gov_live})
+    strategy_live.claimRewards(amount, nonce, signature, {'from': gov_live})
     old = strategy_live.estimatedTotalAssets()
 
     # migrate to a new strategy
@@ -160,3 +167,5 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
     strategyBreakdown(new_strategy, dai, live_vault)
 
     assert live_vault.totalAssets() >= before
+
+    print(f'params {live_vault.strategies(new_strategy.address)}')
