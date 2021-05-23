@@ -183,10 +183,6 @@ contract Strategy is BaseStrategyInitializable {
         if (profit > incurredLosses) {
             // we want strategy to pay off its own incurredLosses from deposit fees first so it doesn't have to report _loss to the vault
             _profit = profit.sub(incurredLosses);
-            if (incurredLosses > 0) {
-                pool.deposit(address(want), incurredLosses);
-                incurredLosses = 0;
-            }
         } else {
             _loss = incurredLosses.sub(profit);
         }

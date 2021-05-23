@@ -9,6 +9,8 @@ def test_revoke_strategy_from_vault(token, vault, strategy, amount, gov):
     token.approve(vault.address, amount, {"from": gov})
     vault.deposit(amount, {"from": gov})
     strategy.harvest()
+    genericStateOfVault(vault, token)
+    strategyBreakdown(strategy, token, vault)
     assert strategy.estimatedTotalAssets() > amount * .99
 
     # In order to pass this tests, you will need to implement prepareReturn.
