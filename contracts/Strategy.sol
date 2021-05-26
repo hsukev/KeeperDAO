@@ -193,9 +193,18 @@ contract Strategy is BaseStrategyInitializable {
             // withdraw just enough to pay off debt
             uint256 _toWithdraw = Math.min(_debtOutstanding, valueOfStaked());
             pool.withdraw(address(this), kToken, _inKTokens(_toWithdraw));
-            _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked().sub(_profit));
+            uint256 _unstakedWithoutProfit = balanceOfUnstaked().sub(_profit);
+            if (_debtOutstanding > _unstakedWithoutProfit) {
+                _debtPayment = _unstakedWithoutProfit;
+                _loss = _debtOutstanding.sub(_unstakedWithoutProfit);
+            } else {
+                _debtPayment = _debtOutstanding;
+                _loss = 0;
+            }
         }
     }
+
+    event Debug(string message, uint256 amount);
 
     function adjustPosition(uint256 _debtOutstanding) internal override {
         // NOTE: Try to adjust positions so that `_debtOutstanding` can be freed up on *next* harvest (not immediately)
