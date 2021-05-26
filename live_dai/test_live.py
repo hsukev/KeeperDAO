@@ -87,7 +87,7 @@ def test_triggers(gov_live, live_vault, strategy_live, dai, amount, rook, rook_w
     strategy_live.tendTrigger(0, {"from": gov_live})
 
     # give it enough reward to trigger harvest
-    rook.transfer(strategy_live.address, 1 * 10 ** 18, {"from": rook_whale})
+    rook.transfer(strategy_live.address, 100 * 10 ** 18, {"from": rook_whale})
     strategyBreakdown(strategy_live, dai, live_vault)
     assert strategy_live.harvestTrigger(0, {"from": gov_live}) == True
 
@@ -146,7 +146,7 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
         nonce = int(data["nonce"], 16)
         signature = data["signature"]
 
-    print(f'\n${amount / 1e18} rooks to claim\n')
+    print(f'\n{amount / 1e18} rooks to claim\n')
     # Deposit to the vault and harvest
     strategy_live.claimRewards(amount, nonce, signature, {'from': gov_live})
     old = strategy_live.estimatedTotalAssets()

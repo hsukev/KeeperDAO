@@ -130,17 +130,16 @@ def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live
 @pytest.fixture
 def strategy_live(Strategy, live_vault, accounts, web3):
     strategy = Strategy.at("0x4140F350c1B67184fE3AaEa314d8C967F99EE8Cc")
-    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
-
-    # Allocate 1.5% USDC to KeeperDAO
-    yvUSDC = live_vault
-    StrategyAH2EarncyUSDC = "0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD"  # Current Ratio: 32%
-    StrategyKeeperDAOUSDC = strategy
-    params = yvUSDC.strategies(StrategyAH2EarncyUSDC)
-    currentDetbRatio = params.dict()['debtRatio']
-    newDebtRatio = currentDetbRatio - 150  # Give up 1.5%
-    yvUSDC.updateStrategyDebtRatio(StrategyAH2EarncyUSDC, newDebtRatio, {"from": ms})
-    yvUSDC.updateStrategyDebtRatio(StrategyKeeperDAOUSDC, 150, {"from": ms})
+    # ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
+    # # Allocate 1.5% USDC to KeeperDAO
+    # yvUSDC = live_vault
+    # StrategyAH2EarncyUSDC = "0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD"  # Current Ratio: 32%
+    # StrategyKeeperDAOUSDC = strategy
+    # params = yvUSDC.strategies(StrategyAH2EarncyUSDC)
+    # currentDetbRatio = params.dict()['debtRatio']
+    # newDebtRatio = currentDetbRatio - 150  # Give up 1.5%
+    # yvUSDC.updateStrategyDebtRatio(StrategyAH2EarncyUSDC, newDebtRatio, {"from": ms})
+    # yvUSDC.updateStrategyDebtRatio(StrategyKeeperDAOUSDC, 150, {"from": ms})
 
     yield strategy
 

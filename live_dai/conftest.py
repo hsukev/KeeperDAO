@@ -124,17 +124,16 @@ def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live
 @pytest.fixture
 def strategy_live(Strategy, live_vault, accounts, web3):
     strategy = Strategy.at("0xb374387a340e6aA7d78385C4a4aaC6b425A685B0")
-    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
-
-    yvDAI = live_vault
-    StrategyAH2EarncyDAI = "0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8"  # Current Ratio: 26.5%
-    # StrategyKeeperDAODAI = "0xb374387a340e6aA7d78385C4a4aaC6b425A685B0"  # Current Ratio: 0%
-    StrategyKeeperDAODAI = strategy
-    params = yvDAI.strategies(StrategyAH2EarncyDAI)
-    currentDetbRatio = params.dict()['debtRatio']
-    newDebtRatio = currentDetbRatio - 100  # Give up 1%
-    yvDAI.updateStrategyDebtRatio(StrategyAH2EarncyDAI, newDebtRatio, {"from": ms})
-    yvDAI.updateStrategyDebtRatio(StrategyKeeperDAODAI, 100, {"from": ms})
+    # ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
+    # yvDAI = live_vault
+    # StrategyAH2EarncyDAI = "0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8"  # Current Ratio: 26.5%
+    # # StrategyKeeperDAODAI = "0xb374387a340e6aA7d78385C4a4aaC6b425A685B0"  # Current Ratio: 0%
+    # StrategyKeeperDAODAI = strategy
+    # params = yvDAI.strategies(StrategyAH2EarncyDAI)
+    # currentDetbRatio = params.dict()['debtRatio']
+    # newDebtRatio = currentDetbRatio - 100  # Give up 1%
+    # yvDAI.updateStrategyDebtRatio(StrategyAH2EarncyDAI, newDebtRatio, {"from": ms})
+    # yvDAI.updateStrategyDebtRatio(StrategyKeeperDAODAI, 100, {"from": ms})
 
     yield strategy
 

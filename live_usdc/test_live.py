@@ -1,6 +1,7 @@
 import brownie
 
 from live_usdc.util import genericStateOfStrat, strategyBreakdown, genericStateOfVault
+import urllib.request, json
 
 
 def test_operation(chain, usdc, live_vault, strategy_live, strategist, amount, usdc_whale, gov_live):
@@ -85,12 +86,8 @@ def test_triggers(gov_live, live_vault, strategy_live, usdc, amount, rook, rook_
     assert strategy_live.harvestTrigger(0, {"from": gov_live}) == False
     strategy_live.tendTrigger(0, {"from": gov_live})
 
-    # give it a tiny bit of reward, but not enough to trigger harvest
-    rook.transfer(strategy_live.address, 1 * 10 ** 13, {"from": rook_whale})
-    assert strategy_live.harvestTrigger(0) == (strategy_live.currentDepositFee() == 0)
-
     # give it enough reward to trigger harvest
-    rook.transfer(strategy_live.address, 1 * 10 ** 18, {"from": rook_whale})
+    rook.transfer(strategy_live.address, 100 * 10 ** 18, {"from": rook_whale})
     strategyBreakdown(strategy_live, usdc, live_vault)
     assert strategy_live.harvestTrigger(0, {"from": gov_live}) == True
 
@@ -137,3 +134,40 @@ def test_migration(usdc, live_vault, strategy_live, amount, Strategy, gov_live, 
     new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor)
     strategy_live.migrate(new_strategy.address, {"from": gov_live})
     assert new_strategy.estimatedTotalAssets() > amount * .99
+
+def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
+                               rook_distributor, rook,
+                               weth, rewards, keeper, chain):
+    with urllib.request.urlopen(
+            f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{strategy_live.address}") as url:
+        data = json.loads(url.read().decode())
+        amount = int(data["earnings_to_date"], 16)
+        nonce = int(data["nonce"], 16)
+        signature = data["signature"]
+
+    print(f'\n{amount / 1e18} rooks to claim\n')
+    # Deposit to the vault and harvest
+    strategy_live.claimRewards(amount, nonce, signature, {'from': gov_live})
+    old = strategy_live.estimatedTotalAssets()
+
+    print('old strat')
+    strategyBreakdown(strategy_live, usdc, live_vault)
+
+    # migrate to a new strategy
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor)
+    live_vault.migrateStrategy(strategy_live, new_strategy.address, {"from": gov_live})
+    assert new_strategy.estimatedTotalAssets() == old
+
+    before = live_vault.totalAssets()
+    print('before harvest')
+    strategyBreakdown(new_strategy, usdc, live_vault)
+
+    new_strategy.harvest({"from": gov_live})
+    chain.sleep(3600 * 12)  # 6 hrs needed for profits to unlock
+    chain.mine(1)
+    print('after harvest')
+    strategyBreakdown(new_strategy, usdc, live_vault)
+
+    assert live_vault.totalAssets() >= before
+
+    print(f'params {live_vault.strategies(new_strategy.address)}')

@@ -36,6 +36,6 @@ def strategyBreakdown(strategy, currency, vault):
     print(f'balanceOfStaked = ', strategy.balanceOfStaked() / (10 ** decimals))
     print(f'valueOfStaked = ', strategy.valueOfStaked() / (10 ** decimals))
     print(f'balanceOfUnstaked = ', strategy.balanceOfUnstaked() / (10 ** decimals))
-    print(f'balanceOfReward = ', strategy.balanceOfReward() / (10 ** decimals))
+    print(f'balanceOfReward = ', strategy.balanceOfReward() / (10 ** 18))
     print(f'valueOfReward = ', strategy.valueOfReward() / (10 ** decimals))
     print(f'estimatedTotalAsset = ', strategy.estimatedTotalAssets() / (10 ** decimals))
