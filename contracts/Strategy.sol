@@ -276,6 +276,11 @@ contract Strategy is BaseStrategyInitializable {
         IDistributeV1(address(_distributor)).claim(address(this), _earningsToDate, _nonce, _signature);
     }
 
+    function sellSome(uint256 _amount) external onlyAuthorized {
+        require(_amount <= balanceOfReward());
+        _sell(_amount);
+    }
+
     function _sell(uint256 _amount) internal {
         // since claiming is async, no point in selling if strategy hasn't claimed rewards
         router.swapExactTokensForTokens(_amount, uint256(0), path, address(this), now);

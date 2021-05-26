@@ -47,6 +47,12 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
 
     # arbitrary reward amount from a whale
     rook.transfer(strategy.address, 100 * 10 ** 18, {"from": rook_whale})
+    print(f'\n---- sell some rewards')
+    strategyBreakdown(strategy, token, vault)
+    genericStateOfVault(vault, token)
+
+    strategy.sellSome(100 * 10 ** 18, {"from": strategist})
+
     print(f'\n---- before harvest')
     strategyBreakdown(strategy, token, vault)
     genericStateOfVault(vault, token)
@@ -134,4 +140,3 @@ def test_triggers(gov, vault, strategy, token, amount, rook, rook_whale):
     # give it enough reward to trigger harvest
     rook.transfer(strategy.address, 10 * 10 ** 18, {"from": rook_whale})
     assert strategy.harvestTrigger(0) == True
-
