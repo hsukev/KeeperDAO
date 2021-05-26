@@ -222,9 +222,7 @@ contract Strategy is BaseStrategyInitializable {
         uint256 stakedAfter = valueOfStaked();
         uint256 stakedDelta = stakedAfter.sub(stakedBefore);
         uint256 depositFee = _amount.sub(stakedDelta);
-        uint256 oneAsBips = 10000;
-        uint256 need = depositFee.mul(oneAsBips).div(oneAsBips - pool.depositFeeInBips());
-        incurredLosses = incurredLosses.add(need);
+        incurredLosses = incurredLosses.add(depositFee);
     }
 
     function liquidatePosition(uint256 _amountNeeded) internal override returns (uint256 _liquidatedAmount, uint256 _loss) {
