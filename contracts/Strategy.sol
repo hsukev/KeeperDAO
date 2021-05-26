@@ -155,7 +155,6 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     // only way to find out is thru calculating a virtual price this way
-    // TODO: return a reasonable value when div(0)
     function _inKTokens(uint256 wantAmount) internal view returns (uint256){
         return wantAmount.mul(balanceOfStaked()).div(valueOfStaked());
     }
@@ -190,18 +189,12 @@ contract Strategy is BaseStrategyInitializable {
         // loss has been recorded.
         incurredLosses = 0;
 
-        if (_debtOutstanding > _profit) {
+        if (_debtOutstanding > 0) {
             // withdraw just enough to pay off debt
             uint256 _toWithdraw = Math.min(_debtOutstanding, valueOfStaked());
             pool.withdraw(address(this), kToken, _inKTokens(_toWithdraw));
             _debtPayment = Math.min(_debtOutstanding, balanceOfUnstaked().sub(_profit));
-
-        } else {
-            _debtPayment = _debtOutstanding;
-            _profit = _profit.sub(_debtOutstanding);
         }
-
-        return (_profit, _loss, _debtPayment);
     }
 
     function adjustPosition(uint256 _debtOutstanding) internal override {
