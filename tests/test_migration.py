@@ -12,6 +12,6 @@ def test_migration(token, vault, strategy, amount, Strategy, strategist, gov, ma
     assert strategy.estimatedTotalAssets() > amount * .99
 
     # migrate to a new strategy
-    new_strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor)
+    new_strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, strategy)
     strategy.migrate(new_strategy.address, {"from": gov})
     assert new_strategy.estimatedTotalAssets() > amount * .99

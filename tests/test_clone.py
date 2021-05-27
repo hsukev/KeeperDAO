@@ -11,16 +11,18 @@ import conftest as config
     pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8",
                  id="usdc")], indirect=True)
 def test_clone(accounts, strategy, strategist, rewards, keeper, vault, Strategy, gov, dai, dai_vault, rook, rook_whale,
-               amount, marketplace, pool, rook_distributor, weth):
+               amount, marketplace, pool, rook_distributor, weth, zero_address):
     with brownie.reverts():
-        strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, {"from": gov})
+        strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, zero_address, {"from": gov})
 
-    transaction = strategy.clone(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, {"from": gov})
+    transaction = strategy.clone(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, zero_address,
+                                 {"from": gov})
     cloned_strategy = Strategy.at(transaction.return_value)
     assert cloned_strategy.name() == "StrategyRook Dai Stablecoin"
 
     with brownie.reverts():
-        cloned_strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, {"from": gov})
+        cloned_strategy.init(dai_vault, strategist, rewards, keeper, pool, gov, rook_distributor, zero_address,
+                             {"from": gov})
 
     # test harvest for cloned strategy
     # dai whale

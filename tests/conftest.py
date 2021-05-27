@@ -117,8 +117,8 @@ def dai_vault(pm, gov, rewards, guardian, management, dai):
 
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook_distributor):
-    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor)
+def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook_distributor, zero_address):
+    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, zero_address)
     strategy.setKeeper(keeper, {"from": gov})
     vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
     yield strategy
@@ -148,3 +148,8 @@ def rook_distributor(accounts):
 def pool():
     token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
     yield Contract(token_address)
+
+@pytest.fixture
+def zero_address(accounts):
+    token_address = "0x0000000000000000000000000000000000000000"
+    yield accounts.at(token_address, force=True)

@@ -43,9 +43,10 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor
+        address _rewardDistributor,
+        address payable _oldStrategy
     ) public BaseStrategyInitializable(_vault) {
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _oldStrategy);
     }
 
     function clone(
@@ -55,7 +56,8 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor
+        address _rewardDistributor,
+        address payable _oldStrategy
     ) external returns (address payable newStrategy) {
         // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
         bytes20 addressBytes = bytes20(address(this));
@@ -69,7 +71,7 @@ contract Strategy is BaseStrategyInitializable {
             newStrategy := create(0, clone_code, 0x37)
         }
 
-        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
+        Strategy(newStrategy).init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _oldStrategy);
         emit Cloned(newStrategy);
     }
 
@@ -80,10 +82,11 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor
+        address _rewardDistributor,
+        address payable _oldStrategy
     ) external {
         super._initialize(_vault, _strategist, _rewards, _keeper);
-        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor);
+        _init(_vault, _strategist, _rewards, _keeper, _pool, _voter, _rewardDistributor, _oldStrategy);
     }
 
     function _init(
@@ -93,8 +96,14 @@ contract Strategy is BaseStrategyInitializable {
         address _keeper,
         address _pool,
         address _voter,
-        address _rewardDistributor
+        address _rewardDistributor,
+        address payable _oldStrategy
     ) internal {
+        if (_oldStrategy != address(0x0)) {
+            Strategy _oldStrategy = Strategy(_oldStrategy);
+            require(_oldStrategy.want() == want, "want mismatch");
+            incurredLosses = _oldStrategy.incurredLosses();
+        }
 
         // You can set these parameters on deployment to whatever you want
         // maxReportDelay = 6300;
