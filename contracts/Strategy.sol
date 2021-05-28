@@ -131,7 +131,6 @@ contract Strategy is BaseStrategyInitializable {
     }
 
     function name() external view override returns (string memory) {
-        // Add your own name here, suggestion e.g. "StrategyCreamYFI"
         return string(
             abi.encodePacked("StrategyRook ", IName(address(want)).name())
         );
@@ -219,8 +218,6 @@ contract Strategy is BaseStrategyInitializable {
             }
         }
     }
-
-    event Debug(string message, uint256 amount);
 
     function adjustPosition(uint256 _debtOutstanding) internal override {
         // NOTE: Try to adjust positions so that `_debtOutstanding` can be freed up on *next* harvest (not immediately)
