@@ -30,7 +30,7 @@ def test_operation(accounts, token, vault, strategy, strategist, amount):
 
 
 @pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
-def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook):
+def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount, rook_whale, rook, chain):
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": accounts[0]})
     vault.deposit(amount, {"from": accounts[0]})
@@ -42,6 +42,12 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
 
     assets_before = vault.totalAssets()
 
+
+    before_pps = vault.pricePerShare()
+    strategy.harvest()
+    chain.sleep(3600 * 6)  # 6 hrs needed for profits to unlock
+    chain.mine(1)
+
     # There isn't a way to simulate rewards from the distributor as it requires data from an offchain heroku app
     # The heroku app is updated from mainnet data and is not open sourced
 
@@ -51,7 +57,7 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     strategyBreakdown(strategy, token, vault)
     genericStateOfVault(vault, token)
 
-    strategy.sellSome(100 * 10 ** 18, {"from": strategist})
+    strategy.sellSome(10 * 10 ** 18, {"from": strategist})
 
     print(f'\n---- before harvest')
     strategyBreakdown(strategy, token, vault)
@@ -63,6 +69,8 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     genericStateOfVault(vault, token)
 
     assert vault.totalAssets() > assets_before
+    assert vault.pricePerShare() > before_pps
+
 
 
 @pytest.mark.parametrize(config.fixtures, config.params, indirect=True)
