@@ -99,16 +99,15 @@ contract Strategy is BaseStrategyInitializable {
         address _rewardDistributor,
         address payable _oldStrategy
     ) internal {
+
+        // If this strategy is migrated from a previous rook strategy, set the appropriate _oldStrategy
+        // address in order to transfer the internal account (_incurredLosses) over,
+        // otherwise it should be the zero address and bypass this step
         if (_oldStrategy != address(0x0)) {
             Strategy _oldStrategy = Strategy(_oldStrategy);
             require(_oldStrategy.want() == want, "want mismatch");
             incurredLosses = _oldStrategy.incurredLosses();
         }
-
-        // You can set these parameters on deployment to whatever you want
-        // maxReportDelay = 6300;
-        // profitFactor = 100;
-        // debtThreshold = 0;
 
         // check to see if KeeperDao can actually accept want (renBTC, DAI, USDC, ETH, WETH)
         pool = ILiquidityPool(address(_pool));
