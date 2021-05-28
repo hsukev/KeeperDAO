@@ -216,6 +216,25 @@ contract Strategy is BaseStrategyInitializable {
                 _loss = 0;
             }
         }
+
+        // sunset scenario
+        if (vault.strategies(address(this)).debtRatio == 0) {
+            uint256 _staked = balanceOfStaked();
+            if (_staked > 0) {
+                uint256 _before = balanceOfUnstaked();
+                pool.withdraw(address(this), kToken, _staked);
+                uint256 _after = balanceOfUnstaked();
+                uint256 _delta = _after.sub(_before);
+
+                if (_delta > _loss) {
+                    _profit = _profit.add(_delta.sub(_loss));
+                    _loss = 0;
+                } else {
+                    _loss = _loss.sub(_delta);
+                    _profit = 0;
+                }
+            }
+        }
     }
 
     function adjustPosition(uint256 _debtOutstanding) internal override {

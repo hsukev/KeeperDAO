@@ -84,6 +84,8 @@ def test_change_debt(gov, token, vault, strategy, strategist, amount, rook, rook
     # since there's a deposit fee, we just want to check within a reasonable margin like 1%
     assert (amount / 2) * 1.01 > strategy.estimatedTotalAssets() > (amount / 2) * .99
 
+    # give it some reward to simulate prod situation
+    rook.transfer(strategy.address, 1 * 10 ** 18, {"from": rook_whale})
     vault.updateStrategyDebtRatio(strategy.address, 10_000, {"from": gov})
     strategy.harvest()
     # since there's a deposit fee, we just want to check within a reasonable margin like 1%

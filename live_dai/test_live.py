@@ -138,7 +138,7 @@ def test_migration(dai, live_vault, strategy_live, amount, Strategy, gov_live, s
 
 def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
                                rook_distributor, rook,
-                               weth, rewards, keeper, chain):
+                               weth, rewards, keeper, chain, accounts, web3):
     with urllib.request.urlopen(
             f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{strategy_live.address}") as url:
         data = json.loads(url.read().decode())
@@ -170,3 +170,12 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
     assert live_vault.totalAssets() >= before
 
     print(f'params {live_vault.strategies(new_strategy.address)}')
+
+    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
+    live_vault.updateStrategyDebtRatio(new_strategy.address, 0, {"from": ms})
+    new_strategy.harvest()
+
+    print('debt 0')
+    strategyBreakdown(new_strategy, dai, live_vault)
+    print(f'params {live_vault.strategies(new_strategy.address)}')
+    assert new_strategy.estimatedTotalAssets() == 0

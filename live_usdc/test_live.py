@@ -5,7 +5,7 @@ import urllib.request, json
 
 
 def test_operation(chain, usdc, live_vault, strategy_live, strategist, amount, usdc_whale, gov_live):
-    # Deposit to the live_dai_vault
+    # Deposit to the live_usdc_vault
     usdc.approve(live_vault.address, amount, {"from": usdc_whale})
     live_vault.deposit(amount, {"from": usdc_whale})
     whale_before = usdc.balanceOf(usdc_whale)
@@ -28,7 +28,7 @@ def test_operation(chain, usdc, live_vault, strategy_live, strategist, amount, u
 
 def test_profitable_harvest(chain, gov_live, usdc, live_vault, strategy_live, strategist, amount, rook_whale, rook,
                             usdc_whale):
-    # Deposit to the live_dai_vault
+    # Deposit to the live_usdc_vault
     usdc.approve(live_vault.address, amount, {"from": usdc_whale})
     live_vault.deposit(amount, {"from": usdc_whale})
     # harvest
@@ -54,18 +54,18 @@ def test_profitable_harvest(chain, gov_live, usdc, live_vault, strategy_live, st
 
 
 def test_sweep(gov_live, live_vault, strategy_live, usdc, amount, crv, crv_amount, crv_whale, rook):
-    # Strategy want dai doesn't work
+    # Strategy want usdc doesn't work
     usdc.transfer(strategy_live, amount, {"from": gov_live})
     assert usdc.address == strategy_live.want()
     assert usdc.balanceOf(strategy_live) > 0
     with brownie.reverts("!want"):
         strategy_live.sweep(usdc, {"from": gov_live})
 
-    # live_dai_vault share dai doesn't work
+    # live_usdc_vault share usdc doesn't work
     with brownie.reverts("!shares"):
         strategy_live.sweep(live_vault.address, {"from": gov_live})
 
-    # Protected dai doesn't work
+    # Protected usdc doesn't work
     with brownie.reverts("!protected"):
         strategy_live.sweep(rook, {"from": gov_live})
         strategy_live.sweep(strategy_live.kToken, {"from": gov_live})
@@ -78,7 +78,7 @@ def test_sweep(gov_live, live_vault, strategy_live, usdc, amount, crv, crv_amoun
 
 
 def test_triggers(gov_live, live_vault, strategy_live, usdc, amount, rook, rook_whale, usdc_whale):
-    # Deposit to the live_dai_vault and harvest
+    # Deposit to the live_usdc_vault and harvest
     usdc.approve(live_vault.address, amount, {"from": usdc_whale})
     live_vault.deposit(amount, {"from": usdc_whale})
     strategy_live.harvest({"from": gov_live})
@@ -137,7 +137,7 @@ def test_migration(usdc, live_vault, strategy_live, amount, Strategy, gov_live, 
 
 def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
                                rook_distributor, rook,
-                               weth, rewards, keeper, chain):
+                               weth, rewards, keeper, chain, accounts, web3):
     with urllib.request.urlopen(
             f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{strategy_live.address}") as url:
         data = json.loads(url.read().decode())
@@ -172,3 +172,13 @@ def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy
     assert live_vault.totalAssets() >= before
 
     print(f'params {live_vault.strategies(new_strategy.address)}')
+
+    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
+    live_vault.updateStrategyDebtRatio(new_strategy.address, 0, {"from": ms})
+    new_strategy.harvest()
+
+    print('debt 0')
+    strategyBreakdown(new_strategy, usdc, live_vault)
+    print(f'params {live_vault.strategies(new_strategy.address)}')
+    assert new_strategy.estimatedTotalAssets() == 0
+
