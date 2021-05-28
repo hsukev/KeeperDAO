@@ -206,6 +206,13 @@ contract Strategy is BaseStrategyInitializable {
             if (_debtOutstanding > _unstakedWithoutProfit) {
                 _debtPayment = _unstakedWithoutProfit;
                 _loss = _debtOutstanding.sub(_unstakedWithoutProfit);
+                if (_profit > _loss) {
+                    _profit = _profit.sub(_loss);
+                    _loss = 0;
+                } else {
+                    _profit = 0;
+                    _loss = _loss.sub(_profit);
+                }
             } else {
                 _debtPayment = _debtOutstanding;
                 _loss = 0;
