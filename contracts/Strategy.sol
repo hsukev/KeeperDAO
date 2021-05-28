@@ -208,8 +208,8 @@ contract Strategy is BaseStrategyInitializable {
                     _profit = _profit.sub(_loss);
                     _loss = 0;
                 } else {
-                    _profit = 0;
                     _loss = _loss.sub(_profit);
+                    _profit = 0;
                 }
             } else {
                 _debtPayment = _debtOutstanding;
