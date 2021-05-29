@@ -180,5 +180,11 @@ def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy
     print('debt 0')
     strategyBreakdown(new_strategy, usdc, live_vault)
     print(f'params {live_vault.strategies(new_strategy.address)}')
+    assert new_strategy.estimatedTotalAssets() != 0
+
+    new_strategy.setSunset(True, {"from": gov_live})
+    new_strategy.harvest()
     assert new_strategy.estimatedTotalAssets() == 0
+
+
 

@@ -131,7 +131,8 @@ def test_migration(dai, live_vault, strategy_live, amount, Strategy, gov_live, s
     assert strategy_live.estimatedTotalAssets() > amount * .99
 
     # migrate to a new strategy
-    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor, strategy_live)
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor,
+                                   strategy_live)
     strategy_live.migrate(new_strategy.address, {"from": gov_live})
     assert new_strategy.estimatedTotalAssets() > amount * .99
 
@@ -152,7 +153,8 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
     old = strategy_live.estimatedTotalAssets()
 
     # migrate to a new strategy
-    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor, strategy_live)
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor,
+                                   strategy_live)
     live_vault.migrateStrategy(strategy_live, new_strategy.address, {"from": gov_live})
     assert strategy_live.incurredLosses() == new_strategy.incurredLosses()
     assert new_strategy.estimatedTotalAssets() == old
@@ -178,4 +180,8 @@ def test_migration_with_reward(dai, live_vault, strategy_live, amount, Strategy,
     print('debt 0')
     strategyBreakdown(new_strategy, dai, live_vault)
     print(f'params {live_vault.strategies(new_strategy.address)}')
+    assert new_strategy.estimatedTotalAssets() != 0
+
+    new_strategy.setSunset(True, {"from": gov_live})
+    new_strategy.harvest()
     assert new_strategy.estimatedTotalAssets() == 0

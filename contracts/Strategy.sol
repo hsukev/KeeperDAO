@@ -36,6 +36,7 @@ contract Strategy is BaseStrategyInitializable {
     // amount to send to treasury. Used for future governance voting power
     uint256 public percentKeep;
     uint256 public constant _denominator = 10000;
+    bool public isSunset;
 
     constructor(address _vault,
         address _strategist,
@@ -218,7 +219,7 @@ contract Strategy is BaseStrategyInitializable {
         }
 
         // sunset scenario
-        if (vault.strategies(address(this)).debtRatio == 0) {
+        if (isSunset && vault.strategies(address(this)).debtRatio == 0) {
             uint256 _staked = balanceOfStaked();
             if (_staked > 0) {
                 uint256 _before = balanceOfUnstaked();
@@ -359,6 +360,14 @@ contract Strategy is BaseStrategyInitializable {
         want.safeApprove(address(_pool), uint256(- 1));
         kToken.approve(address(_pool), uint256(- 1));
         pool = ILiquidityPool(_pool);
+    }
+
+    function setIncurredLosses(uint256 _incurredLosses) external onlyGovernance {
+        incurredLosses = _incurredLosses;
+    }
+
+    function setSunset(bool _isSunset) external onlyGovernance {
+        isSunset = _isSunset;
     }
 
     function currentDepositFee() external view returns (uint256){
