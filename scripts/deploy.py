@@ -46,6 +46,7 @@ def main():
     pool = get_address("Pool address")
     treasury = get_address("Treasury address")
     distributor = get_address("Distributor address")
+    oldStrategy = get_address("Old strategy address")
 
     print(
         f"""
@@ -61,4 +62,4 @@ def main():
     if input("Deploy Strategy? y/[N]: ").lower() != "y":
         return
 
-    strategy = Strategy.deploy(vault, dev, rewards, keeper, pool, treasury, distributor, {"from": dev}, publish_source=publish_source)
+    strategy = Strategy.deploy(vault, dev, rewards, keeper, pool, treasury, distributor, oldStrategy, {"from": dev}, publish_source=publish_source)
