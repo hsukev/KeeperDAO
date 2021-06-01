@@ -3,10 +3,8 @@ from brownie import Contract, accounts, web3
 
 
 def main():
-    ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
     gov = accounts.at("0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52", force=True)
-
-    yvDAI = Contract("0x19D3364A399d251E894aC732651be8B0E4e85001", owner=ms)
+    yvDAI = Contract("0x19D3364A399d251E894aC732651be8B0E4e85001", owner=gov)
     OldStrategyRookDAI = Contract("0xb374387a340e6aA7d78385C4a4aaC6b425A685B0")
     NewStrategyRookDAI = Contract("0xB361a3E75Bc2Ae6c8A045b3A43E2B0c9aD890d48")
 
@@ -18,9 +16,10 @@ def main():
         signature = data["signature"]
 
     print(f'\n{amount / 1e18} rooks to claim\n')
+    print(f'\nOld strategy total before claim: {OldStrategyRookDAI.estimatedTotalAssets()}\n')
 
-    OldStrategyRookDAI.claimRewards(amount, nonce, signature, {'from': ms})
-    print (f'\nOld strategy total: {OldStrategyRookDAI.estimatedTotalAssets()}\n')
+    OldStrategyRookDAI.claimRewards(amount, nonce, signature, {'from': gov})
+    print(f'\nOld strategy total: {OldStrategyRookDAI.estimatedTotalAssets()}\n')
 
     tx_migrate = yvDAI.migrateStrategy(OldStrategyRookDAI, NewStrategyRookDAI, {"from": gov})
-    print (f'\nNew strategy total: {NewStrategyRookDAI.estimatedTotalAssets()}')
+    print(f'\nNew strategy total: {NewStrategyRookDAI.estimatedTotalAssets()}')
