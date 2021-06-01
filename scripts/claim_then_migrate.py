@@ -4,22 +4,11 @@ from brownie import Contract, accounts, web3
 
 def main():
     gov = accounts.at("0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52", force=True)
-    yvDAI = Contract("0x19D3364A399d251E894aC732651be8B0E4e85001", owner=gov)
-    OldStrategyRookDAI = Contract("0xb374387a340e6aA7d78385C4a4aaC6b425A685B0")
-    NewStrategyRookDAI = Contract("0xB361a3E75Bc2Ae6c8A045b3A43E2B0c9aD890d48")
+    yvUSDC = Contract("0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9", owner=gov)
+    OldStrategyRookUSDC = Contract("0x4140F350c1B67184fE3AaEa314d8C967F99EE8Cc")
+    NewStrategyRookUSDC = Contract("0x2B1a6CB0168aA540ee8D853aB1d10d7A89d6351b")
 
-    with urllib.request.urlopen(
-            f"https://indibo-lpq3.herokuapp.com/reward_of_liquidity_provider/{OldStrategyRookDAI.address}") as url:
-        data = json.loads(url.read().decode())
-        amount = int(data["earnings_to_date"], 16)
-        nonce = int(data["nonce"], 16)
-        signature = data["signature"]
+    print(f'\nOld strategy total: {OldStrategyRookUSDC.estimatedTotalAssets()}\n')
 
-    print(f'\n{amount / 1e18} rooks to claim\n')
-    print(f'\nOld strategy total before claim: {OldStrategyRookDAI.estimatedTotalAssets()}\n')
-
-    OldStrategyRookDAI.claimRewards(amount, nonce, signature, {'from': gov})
-    print(f'\nOld strategy total: {OldStrategyRookDAI.estimatedTotalAssets()}\n')
-
-    tx_migrate = yvDAI.migrateStrategy(OldStrategyRookDAI, NewStrategyRookDAI, {"from": gov})
-    print(f'\nNew strategy total: {NewStrategyRookDAI.estimatedTotalAssets()}')
+    tx_migrate = yvUSDC.migrateStrategy(OldStrategyRookUSDC, NewStrategyRookUSDC, {"from": gov})
+    print(f'\nNew strategy total: {NewStrategyRookUSDC.estimatedTotalAssets()}')
