@@ -41,8 +41,7 @@ def keeper(accounts):
 
 fixtures = "token, amount"
 params = [
-    pytest.param("0x6b175474e89094c44da98b954eedeac495271d0f", "0xd551234ae421e3bcba99a0da6d736074f22192ff", id="dai"),
-    pytest.param("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xbe0eb53f46cd790cd13851d5eff43d12404d33e8", id="usdc")
+    pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xeadb3840596cabf312f2bc88a4bb0b93a4e1ff5f", id="weth"),
 ]
 
 

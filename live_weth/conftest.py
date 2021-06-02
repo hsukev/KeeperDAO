@@ -51,8 +51,8 @@ def dai():
 
 
 @pytest.fixture
-def usdc_whale(accounts):
-    yield accounts.at("0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503", force=True)
+def weth_whale(accounts):
+    yield accounts.at("0xeadb3840596cabf312f2bc88a4bb0b93a4e1ff5f", force=True)
 
 
 @pytest.fixture
@@ -130,23 +130,12 @@ def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live
 @pytest.fixture
 def strategy_live(Strategy, live_vault, accounts, web3):
     strategy = Strategy.at("0x4140F350c1B67184fE3AaEa314d8C967F99EE8Cc")
-    # ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
-    # # Allocate 1.5% USDC to KeeperDAO
-    # yvUSDC = live_vault
-    # StrategyAH2EarncyUSDC = "0x86Aa49bf28d03B1A4aBEb83872cFC13c89eB4beD"  # Current Ratio: 32%
-    # StrategyKeeperDAOUSDC = strategy
-    # params = yvUSDC.strategies(StrategyAH2EarncyUSDC)
-    # currentDetbRatio = params.dict()['debtRatio']
-    # newDebtRatio = currentDetbRatio - 150  # Give up 1.5%
-    # yvUSDC.updateStrategyDebtRatio(StrategyAH2EarncyUSDC, newDebtRatio, {"from": ms})
-    # yvUSDC.updateStrategyDebtRatio(StrategyKeeperDAOUSDC, 150, {"from": ms})
-
     yield strategy
 
 
 @pytest.fixture
 def live_vault(pm):
-    yield Contract("0x5f18C75AbDAe578b483E5F43f12a39cF75b973a9")
+    yield Contract("0xa9fE4601811213c340e850ea305481afF02f5b28")
 
 
 @pytest.fixture
