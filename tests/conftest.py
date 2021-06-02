@@ -41,7 +41,7 @@ def keeper(accounts):
 
 fixtures = "token, amount"
 params = [
-    pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xeadb3840596cabf312f2bc88a4bb0b93a4e1ff5f", id="weth"),
+    pytest.param("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0x2f0b23f53734252bda2277357e97e1517d6b042a", id="weth")
 ]
 
 
@@ -58,7 +58,7 @@ def dai():
 
 @pytest.fixture
 def amount(accounts, token, request):
-    amount = 100000 * 10 ** token.decimals()
+    amount = 10 * 10 ** token.decimals()
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 
@@ -117,9 +117,10 @@ def dai_vault(pm, gov, rewards, guardian, management, dai):
 
 @pytest.fixture
 def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook_distributor, zero_address):
-    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor, zero_address)
+    strategy = strategist.deploy(Strategy, vault, strategist, rewards, keeper, pool, gov, rook_distributor,
+                                 zero_address)
     strategy.setKeeper(keeper, {"from": gov})
-    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
     yield strategy
 
 
@@ -127,6 +128,7 @@ def strategy(strategist, keeper, vault, Strategy, gov, weth, rewards, pool, rook
 def marketplace():
     token_address = "0xAab367F214340d94482984521C30b639525D8182"
     yield Contract(token_address)
+
 
 @pytest.fixture
 def rook_whale(accounts):
@@ -147,6 +149,7 @@ def rook_distributor(accounts):
 def pool():
     token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
     yield Contract(token_address)
+
 
 @pytest.fixture
 def zero_address(accounts):

@@ -64,6 +64,9 @@ def test_profitable_harvest(accounts, token, vault, strategy, strategist, amount
     genericStateOfVault(vault, token)
     strategy.harvest()
 
+    chain.sleep(3600 * 7)  # 6 hrs needed for profits to unlock
+    chain.mine(1)
+
     print(f'\n---- after harvest')
     strategyBreakdown(strategy, token, vault)
     genericStateOfVault(vault, token)

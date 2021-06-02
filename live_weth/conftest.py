@@ -52,17 +52,16 @@ def dai():
 
 @pytest.fixture
 def weth_whale(accounts):
-    yield accounts.at("0xeadb3840596cabf312f2bc88a4bb0b93a4e1ff5f", force=True)
+    yield accounts.at("0x2f0b23f53734252bda2277357e97e1517d6b042a", force=True)
 
 
 @pytest.fixture
-def amount(accounts, usdc, gov_live):
-    amount = 100000 * 10 ** usdc.decimals()
+def amount(accounts, weth, gov_live, weth_whale):
+    amount = 10 * 10 ** weth.decimals()
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 
-    reserve = accounts.at("0xd551234ae421e3bcba99a0da6d736074f22192ff", force=True)
-    usdc.transfer(gov_live, amount, {"from": reserve})
+    weth.transfer(gov_live, amount, {"from": weth_whale})
     yield amount
 
 
@@ -110,10 +109,10 @@ def vault(pm, gov, rewards, guardian, management, token):
 
 
 @pytest.fixture
-def dai_vault(pm, gov, rewards, guardian, management, usdc):
+def dai_vault(pm, gov, rewards, guardian, management, weth):
     Vault = pm(config["dependencies"][0]).Vault
     vault = guardian.deploy(Vault)
-    vault.initialize(usdc, gov, rewards, "", "", guardian)
+    vault.initialize(weth, gov, rewards, "", "", guardian)
     vault.setDepositLimit(2 ** 256 - 1, {"from": gov})
     vault.setManagement(management, {"from": gov})
     yield vault
@@ -123,13 +122,13 @@ def dai_vault(pm, gov, rewards, guardian, management, usdc):
 def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live, rewards):
     strategy = strategist.deploy(Strategy, vault)
     strategy.setKeeper(keeper)
-    vault.addStrategy(strategy, 10_000, 0, 1000, {"from": gov})
+    vault.addStrategy(strategy, 10_000, 0, 2 ** 256 - 1, 1000, {"from": gov})
     yield strategy
 
 
 @pytest.fixture
 def strategy_live(Strategy, live_vault, accounts, web3):
-    strategy = Strategy.at("0x4140F350c1B67184fE3AaEa314d8C967F99EE8Cc")
+    strategy = Strategy.at("0xFc84A04478Ffe0B48e46048f4E933A51F4016289")
     yield strategy
 
 
