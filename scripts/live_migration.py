@@ -14,3 +14,15 @@ def main():
 
     tx_migrate = yvUSDC.migrateStrategy(OldStrategyRookUSDC, NewStrategyRookUSDC, {"from": gov})
     print(f'\nNew strategy total: {NewStrategyRookUSDC.estimatedTotalAssets()}')
+
+
+
+    print("\nmigrating StrategyRookWETH\n")
+    yvWETH = Contract("0xa9fE4601811213c340e850ea305481afF02f5b28", owner=gov)
+    OldStrategyRookWETH = Contract("0xFc84A04478Ffe0B48e46048f4E933A51F4016289")
+    NewStrategyRookWETH = Contract("0xbC0F2FF495eE2eb74A145EDAA457FA4Fa310DAC5")
+
+    print(f'\nOld strategy total: {OldStrategyRookWETH.estimatedTotalAssets()}\n')
+
+    tx_migrate = yvWETH.migrateStrategy(OldStrategyRookWETH, NewStrategyRookWETH, {"from": gov})
+    print(f'\nNew strategy total: {NewStrategyRookWETH.estimatedTotalAssets()}')
