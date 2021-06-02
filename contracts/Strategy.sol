@@ -105,9 +105,9 @@ contract Strategy is BaseStrategyInitializable {
         // address in order to transfer the internal account (_incurredLosses) over,
         // otherwise it should be the zero address and bypass this step
         if (_oldStrategy != address(0x0)) {
-            Strategy _oldStrategy = Strategy(_oldStrategy);
-            require(_oldStrategy.want() == want, "want mismatch");
-            incurredLosses = _oldStrategy.incurredLosses();
+            Strategy oldStrategy = Strategy(_oldStrategy);
+            require(oldStrategy.want() == want, "want mismatch");
+            incurredLosses = oldStrategy.incurredLosses();
         }
 
         // check to see if KeeperDao can actually accept want (renBTC, DAI, USDC, ETH, WETH)
