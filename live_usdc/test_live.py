@@ -121,7 +121,7 @@ def test_emergency_exit(usdc, live_vault, strategy_live, strategist, amount, gov
     genericStateOfVault(live_vault, usdc)
 
 
-def test_migration(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
+def test_migration(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, new_pool,
                    rook_distributor, rook,
                    weth, rewards, keeper):
     # Deposit to the vault and harvest
@@ -131,11 +131,13 @@ def test_migration(usdc, live_vault, strategy_live, amount, Strategy, gov_live, 
     assert strategy_live.estimatedTotalAssets() > amount * .99
 
     # migrate to a new strategy
-    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor, strategy_live)
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, new_pool, gov, rook_distributor,
+                                   strategy_live)
     strategy_live.migrate(new_strategy.address, {"from": gov_live})
     assert new_strategy.estimatedTotalAssets() > amount * .99
 
-def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, pool,
+
+def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy, gov_live, strategist, gov, new_pool,
                                rook_distributor, rook,
                                weth, rewards, keeper, chain, accounts, web3):
     with urllib.request.urlopen(
@@ -154,7 +156,8 @@ def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy
     strategyBreakdown(strategy_live, usdc, live_vault)
 
     # migrate to a new strategy
-    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, pool, gov, rook_distributor, strategy_live)
+    new_strategy = gov_live.deploy(Strategy, live_vault, strategist, rewards, keeper, new_pool, gov, rook_distributor,
+                                   strategy_live)
     live_vault.migrateStrategy(strategy_live, new_strategy.address, {"from": gov_live})
     assert strategy_live.incurredLosses() == new_strategy.incurredLosses()
     assert new_strategy.estimatedTotalAssets() == old
@@ -185,6 +188,3 @@ def test_migration_with_reward(usdc, live_vault, strategy_live, amount, Strategy
     new_strategy.setSunset(True, {"from": gov_live})
     new_strategy.harvest()
     assert new_strategy.estimatedTotalAssets() == 0
-
-
-

@@ -44,6 +44,7 @@ def usdc():
     token_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
     yield Contract(token_address)
 
+
 @pytest.fixture
 def dai():
     token_address = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
@@ -61,7 +62,7 @@ def amount(accounts, usdc, gov_live):
     # In order to get some funds for the token you are about to use,
     # it impersonate an exchange address to use it's funds.
 
-    reserve = accounts.at("0xd551234ae421e3bcba99a0da6d736074f22192ff", force=True)
+    reserve = accounts.at("0x0A59649758aa4d66E25f08Dd01271e891fe52199", force=True)
     usdc.transfer(gov_live, amount, {"from": reserve})
     yield amount
 
@@ -128,8 +129,10 @@ def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live
 
 
 @pytest.fixture
-def strategy_live(Strategy, live_vault, accounts, web3):
-    strategy = Strategy.at("0x4140F350c1B67184fE3AaEa314d8C967F99EE8Cc")
+def strategy_live(Strategy, live_vault, accounts, web3, gov_live, new_pool):
+    strategy = Strategy.at("0x2B1a6CB0168aA540ee8D853aB1d10d7A89d6351b")
+    strategy.setLiquidityPool(new_pool, {'from': gov_live})
+
     # ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
     # # Allocate 1.5% USDC to KeeperDAO
     # yvUSDC = live_vault
@@ -167,4 +170,10 @@ def rook_distributor(accounts):
 @pytest.fixture
 def pool():
     token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
+    yield Contract(token_address)
+
+
+@pytest.fixture
+def new_pool():
+    token_address = "0x4F868C1aa37fCf307ab38D215382e88FCA6275E2"
     yield Contract(token_address)

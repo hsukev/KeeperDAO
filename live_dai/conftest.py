@@ -122,8 +122,9 @@ def strategy(strategist, keeper, vault, Strategy, gov, live_vault, strategy_live
 
 
 @pytest.fixture
-def strategy_live(Strategy, live_vault, accounts, web3):
-    strategy = Strategy.at("0xb374387a340e6aA7d78385C4a4aaC6b425A685B0")
+def strategy_live(Strategy, live_vault, accounts, web3, gov_live, new_pool):
+    strategy = Strategy.at("0xB361a3E75Bc2Ae6c8A045b3A43E2B0c9aD890d48")
+    strategy.setLiquidityPool(new_pool, {'from': gov_live})
     # ms = accounts.at(web3.ens.resolve("brain.ychad.eth"), force=True)
     # yvDAI = live_vault
     # StrategyAH2EarncyDAI = "0x7D960F3313f3cB1BBB6BF67419d303597F3E2Fa8"  # Current Ratio: 26.5%
@@ -161,4 +162,10 @@ def rook_distributor(accounts):
 @pytest.fixture
 def pool():
     token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
+    yield Contract(token_address)
+
+
+@pytest.fixture
+def new_pool():
+    token_address = "0x4F868C1aa37fCf307ab38D215382e88FCA6275E2"
     yield Contract(token_address)

@@ -146,7 +146,7 @@ def rook_distributor(accounts):
 
 @pytest.fixture
 def pool():
-    token_address = "0xAaE0633E15200bc9C50d45cD762477D268E126BD"
+    token_address = "0x4F868C1aa37fCf307ab38D215382e88FCA6275E2"
     yield Contract(token_address)
 
 @pytest.fixture
